@@ -1,0 +1,103 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[aes256 암복호화]</h2>
+<style type="text/css">
+  .tg  {border-collapse:collapse;border-spacing:0;}
+  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg .tg-baqh{text-align:left;vertical-align:top}
+  .tg .tg-xozw{font-weight:bold;text-align:center;vertical-align:top}
+  .tg .tg-6opk{font-weight:bold;background-color:#00d2cb;text-align:center;vertical-align:top}
+  .tg .tg-fvov{background-color:#34cdf9;text-align:center;vertical-align:top}
+</style>
+<form id="f1" name="f1">
+  <table class="tg" style="undefined;table-layout: fixed; width: 816px">
+  <colgroup>
+  <col style="width: 125px">
+  <col style="width: 321px">
+  </colgroup>
+    <tr>
+      <th class="tg-xozw">구분</th>
+      <th class="tg-6opk">입력</th>
+    </tr>
+    <tr>
+      <td class="tg-fvov">관계사</td>
+      <td class="tg-baqh">
+          <select id="gtype" >
+              <option value="bank">은행</option>
+              <option value="card">카드</option>
+              <option value="members">맴버스</option>
+              <option value="normal" selected>표준</option>
+          </select>
+      </td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">구분</td>
+      <td class="tg-baqh">
+        <input type="radio" id="radioenc" name="encdec" value="enc">encrypt
+        <input type="radio" id="radiodec" name="encdec" value="dec">decrypt
+      </td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">Key</td>
+      <td class="tg-baqh"><input id="key" style="width:100%"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">iv</td>
+      <td class="tg-baqh"><input id="iv" style="width:100%"/> * only members</td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">text</td>
+      <td class="tg-baqh"><input id="inputText" style="width:100%"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">result</td>
+      <td class="tg-baqh"><input id="resultText" style="width:100%"/></td>
+    </tr>
+
+  </table>
+</form>
+<div id="div_res">
+
+</div>
+<button id="myButton" class="myButton">do</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){
+//alert(document.f1.encdec.value);
+    var url=encodeURI("http://localhost:8080/test-module/doEncrypt");
+    var params={
+        gtype:$("#gtype").val(),
+        encdec:document.f1.encdec.value,
+        key:$("#key").val(),
+        iv:$("#iv").val(),
+        inputText:$("#inputText").val()
+		}
+    $.ajax({      
+        type:'POST',
+        url:url,
+        data : JSON.stringify(params),
+        contentType:'application/json; charset=UTF-8',
+        dataType: 'json',
+        success:function(response){
+          if (response != undefined) {
+            $("#resultText").val(response.response);
+          }
+        },
+        error:function(e){  
+            alert(e.responseText);  
+        }  
+    });  
+      
+});  
+</script>

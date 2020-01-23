@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.SettlementRepository">
+	<sql id="paging">
+		LIMIT #{pageOffset} , #{pageSize}
+	</sql>
+
+
+	<select id="getFeeCollectionInfoList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+		SELECT T1.BIL_SEQ					-- 청구일련번호
+              ,T1.BIL_MONTH				    -- 청구월
+              ,T1.HFN_CD					-- 관계사코드
+              ,T1.USEORG_CD				    -- 이용기관코드
+              ,T1.USEORG_NM				    -- 이용기관명
+              ,T1.APP_KEY					-- 앱키
+              ,T1.APP_NM					-- 앱명
+              ,T1.TOT_AMT					-- 총금액
+              ,T1.WD_AMT					-- 출금금액
+              ,T1.WD_ACNO					-- 출금계좌번호
+              ,T1.WD_MEMO					-- 출금계좌적요내용
+              ,T1.DIPO_DIV_CD				-- 입금구분코드
+              ,T1.DIPO_ACNO				    -- 입금계좌번호
+              ,T1.APLV_YN					-- 승인여부
+              ,T1.FULLPAY_YN				-- 완납여부
+              ,T1.UNPAID_AMT				-- 미납금액
+              ,T1.RECEIPT_PRINT_DTTM		-- 영수증 출력일시
+              ,T1.REG_USER					-- 등록일시
+              ,T1.REG_DTTM					-- 등록자
+              ,T1.MOD_DTTM					-- 수정일시
+              ,T1.MOD_USER					-- 수정자
+              ,COUNT(T1.BIL_SEQ) OVER() AS TOT_CNT
+              ,T2.ACC_NO
+              ,T2.ACC_CD
+		FROM PORTAL_FEE_COLLENTION_INFO T1
+		INNER JOIN PORTAL_APP_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+		WHERE 1=1
+        <if test='hfnCd != null and hfnCd != ""'>
+            AND T1.HFN_CD = #{hfnCd}
+        </if>
+          <if test='bilMonth != null and bilMonth != ""'>
+            AND T1.BIL_MONTH = #{bilMonth}
+          </if>
+            AND T1.APLV_YN IN ('R', 'N')
+          <if test='appKey != null and appKey != ""'>
+              AND T1.APP_KEY = #{appKey}
+          </if>
+        <include refid="paging"></include>
+	</select>
+
+    <update id="feeApprovalRequest" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        UPDATE PORTAL_FEE_COLLENTION_INFO
+        SET APLV_YN = 'R'
+        WHERE HFN_CD = #{hfnCd}
+        <if test='bilMonth != null and bilMonth != ""'>
+            AND BIL_MONTH = #{bilMonth}
+        </if>
+    </update>
+
+    <update id="feeApprovalRequestConfirm" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        UPDATE PORTAL_FEE_COLLENTION_INFO
+        SET APLV_YN = 'Y'
+        WHERE HFN_CD = #{hfnCd}
+          AND BIL_MONTH = #{bilMonth}
+        <if test='appKey != null and appKey != ""'>
+            AND APP_KEY = #{appKey}
+        </if>
+    </update>
+
+    <update id="setFeeCollectionInfo" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        UPDATE PORTAL_FEE_COLLENTION_INFO
+        SET WD_AMT = #{wdAmt}
+           ,WD_ACNO = #{wdAcno}
+           ,WD_MEMO = #{wdMemo}
+           ,UNPAID_AMT = #{wdAmt}
+        WHERE APP_KEY = #{appKey}
+          AND HFN_CD = #{hfnCd}
+          AND BIL_MONTH = #{bilMonth}
+    </update>
+
+    <update id="setFeeExcelUpload" parameterType="com.hanafn.openapi.portal.views.vo.FeeCollectionInfoVO">
+        UPDATE PORTAL_FEE_COLLENTION_INFO
+        SET WD_AMT = #{wdAmt}
+           ,WD_ACNO = #{wdAcno}
+           ,WD_MEMO = #{wdMemo}
+        WHERE BIL_MONTH = #{bilMonth}
+          AND HFN_CD = #{hfnCd}
+          AND APP_KEY = #{appKey}
+    </update>
+
+    <select id="getHfnNm" parameterType="String" resultType="String">
+        SELECT HFN_NM
+        FROM PORTAL_HFN_INFO
+        WHERE HFN_CD = #{hfnCd}
+    </select>
+
+    <select id="getFeeCollectionHisList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.BIL_SEQ					-- 청구일련번호
+              ,T1.BIL_MONTH				    -- 청구월
+              ,T1.HFN_CD					-- 관계사코드
+              ,T1.USEORG_CD				    -- 이용기관코드
+              ,T1.USEORG_NM				    -- 이용기관명
+              ,T1.APP_KEY					-- 앱키
+              ,T1.APP_NM					-- 앱명
+              ,T1.TOT_AMT					-- 총금액
+              ,T1.WD_AMT					-- 출금금액
+              ,T1.WD_ACNO					-- 출금계좌번호
+              ,T1.WD_MEMO					-- 출금계좌적요내용
+              ,T1.DIPO_DIV_CD				-- 입금구분코드
+              ,T1.DIPO_ACNO				    -- 입금계좌번호
+              ,T1.APLV_YN					-- 승인여부
+              ,T1.FULLPAY_YN				-- 완납여부
+              ,T1.UNPAID_AMT				-- 미납금액
+              ,T1.RECEIPT_PRINT_DTTM		-- 영수증 출력일시
+              ,T1.REG_USER					-- 등록일시
+              ,T1.REG_DTTM					-- 등록자
+              ,T1.MOD_DTTM					-- 수정일시
+              ,T1.MOD_USER					-- 수정자
+              ,COUNT(T1.BIL_SEQ) OVER() AS TOT_CNT
+              ,T2.ACC_NO
+              ,T2.ACC_CD
+        FROM PORTAL_FEE_COLLENTION_INFO T1
+        INNER JOIN PORTAL_APP_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+        WHERE 1=1
+        <if test='hfnCd != null and hfnCd != ""'>
+            AND T1.HFN_CD = #{hfnCd}
+        </if>
+        <if test='bilMonth != null and bilMonth != ""'>
+            AND T1.BIL_MONTH = #{bilMonth}
+        </if>
+        AND T1.APLV_YN = 'Y'
+        <include refid="paging"></include>
+    </select>
+
+    <update id="setFeeCollectionHisInfo" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        UPDATE PORTAL_FEE_COLLENTION
+        SET WD_AMT = #{wdAmt}
+           ,WD_ACNO = #{wdAcno}
+           ,WD_MEMO = #{wdMemo}
+           ,APLV_YN = 'R'
+        WHERE APP_KEY = #{appKey}
+          AND HFN_CD = #{hfnCd}
+          AND BIL_MONTH = #{bilMonth}
+    </update>
+
+    <select id="getAppList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.APP_KEY					-- 앱키
+              ,T1.APP_NM					-- 앱명
+        FROM PORTAL_FEE_COLLENTION_INFO T1
+        INNER JOIN PORTAL_APP_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+        WHERE 1=1
+        <if test='useorgCd != null and useorgCd != ""'>
+            AND T1.USEORG_CD = #{useorgCd}
+        </if>
+    </select>
+
+    <select id="getUseOrgList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.USEORG_CD					-- USER_KEY
+              ,T1.USEORG_NM					-- 기관명
+        FROM PORTAL_FEE_COLLENTION_INFO T1
+        INNER JOIN PORTAL_APP_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+        WHERE 1=1
+          AND T1.HFN_CD = #{hfnCd}
+    </select>
+
+    <select id="getWdRequestList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.BIL_MONTH     -- 청구월
+              ,T2.USEORG_NM     -- 기관명
+              ,T2.APP_NM        -- 앱명
+              ,T1.WD_AMT AS WD_REQUEST_AMT -- 출금요청금액
+              ,T1.WD_ACNO       -- 출금요청계좌
+              ,T2.WD_MEMO       -- 출금요청적요
+              ,T3.WD_AMT        -- 출금금액
+              ,DATE_FORMAT(T1.REG_DTTM, '%Y-%m-%d') AS REG_DTTM
+              ,COUNT(T1.BIL_MONTH) OVER() AS TOT_CNT
+        FROM PORTAL_FEE_WD_REQUEST T1
+        INNER JOIN PORTAL_FEE_COLLENTION_INFO T2 ON T1.BIL_MONTH = T2.BIL_MONTH AND T1.APP_KEY = T2.APP_KEY
+        INNER JOIN PORTAL_FEE_WD_RESULT T3 ON T1.BIL_MONTH = T3.BIL_MONTH AND T1.APP_KEY = T3.APP_KEY
+        WHERE 1=1
+        <if test='hfnCd != null and hfnCd != ""'>
+            AND T1.HFN_CD = #{hfnCd}
+        </if>
+        <if test='useorgCd != null and useorgCd != ""'>
+            AND T1.USEORG_CD = #{useorgCd}
+        </if>
+        <if test='appKey != null and appKey != ""'>
+            AND T1.APP_KEY = #{appKey}
+        </if>
+        <if test='stDt != null and stDt != ""'>
+            AND T1.REG_DTTM <![CDATA[ >= ]]> #{stDt}
+        </if>
+        <if test='enDt != null and enDt != ""'>
+            AND T1.REG_DTTM <![CDATA[ <= ]]> #{enDt}
+        </if>
+
+        <include refid="paging"></include>
+    </select>
+
+    <select id="getWdResultList" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.BIL_MONTH     -- 청구월
+              ,T2.USEORG_NM     -- 기관명
+              ,T2.APP_NM        -- 앱명
+              ,DATE_FORMAT(T1.REG_DTTM, '%Y-%m-%d') AS REG_DTTM      -- 출금일
+              ,T1.WD_AMT        -- 출금금액
+              ,T2.WD_ACNO       -- 출금계좌
+              ,T1.WD_STAT_CD    -- 출금상태
+              ,COUNT(T1.BIL_MONTH) OVER() AS TOT_CNT
+        FROM PORTAL_FEE_WD_RESULT T1
+        INNER JOIN PORTAL_FEE_COLLENTION_INFO T2 ON T1.BIL_MONTH = T2.BIL_MONTH AND T1.APP_KEY = T2.APP_KEY
+
+        WHERE 1=1
+        <if test='hfnCd != null and hfnCd != ""'>
+            AND T1.HFN_CD = #{hfnCd}
+        </if>
+        <if test='useorgCd != null and useorgCd != ""'>
+            AND T1.USEORG_CD = #{useorgCd}
+        </if>
+        <if test='appKey != null and appKey != ""'>
+            AND T1.APP_KEY = #{appKey}
+        </if>
+        <if test='stDt != null and stDt != ""'>
+            AND T1.REG_DTTM <![CDATA[ >= ]]> #{stDt}
+        </if>
+        <if test='enDt != null and enDt != ""'>
+            AND T1.REG_DTTM <![CDATA[ <= ]]> #{enDt}
+        </if>
+
+        <include refid="paging"></include>
+    </select>
+
+    <update id="setFeeCollectionReject" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        UPDATE PORTAL_FEE_COLLENTION_INFO
+        SET APLV_YN = 'N'
+        WHERE HFN_CD = #{hfnCd}
+          AND BIL_MONTH = #{bilMonth}
+          <if test='appKey != null and appKey != ""'>
+              AND APP_KEY = #{appKey}
+          </if>
+    </update>
+
+    <insert id="setFeeHis" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest">
+        INSERT INTO PORTAL_FEE_COLLENTION_HIS
+        ( BIL_SEQ
+        , BIL_MONTH
+        , HFN_CD
+        , USEORG_CD
+        , USEORG_NM
+        , APP_KEY
+        , APP_NM
+        , TOT_AMT
+        , WD_AMT
+        , WD_ACNO
+        , WD_MEMO
+        , DIPO_DIV_CD
+        , DIPO_ACNO
+        , APLV_YN
+        , FULLPAY_YN
+        , UNPAID_AMT
+        , RECEIPT_PRINT_DTTM
+        , REG_DTTM
+        , REG_USER
+        , MOD_DTTM
+        , MOD_USER)
+        SELECT BIL_SEQ
+              ,BIL_MONTH
+              ,HFN_CD
+              ,USEORG_CD
+              ,USEORG_NM
+              ,APP_KEY
+              ,APP_NM
+              ,TOT_AMT
+              ,WD_AMT
+              ,WD_ACNO
+              ,WD_MEMO
+              ,DIPO_DIV_CD
+              ,DIPO_ACNO
+              ,APLV_YN
+              ,FULLPAY_YN
+              ,UNPAID_AMT
+              ,RECEIPT_PRINT_DTTM
+              ,CURRENT_DATE() AS REG_DTTM
+              ,'SYSTEM'
+              ,CURRENT_DATE() AS MOD_DTTM
+              ,'SYSTEM'
+              FROM PORTAL_FEE_COLLENTION_INFO
+              WHERE BIL_MONTH = #{bilMonth}
+              AND HFN_CD = #{hfnCd}
+              <if test='appKey != null and appKey != ""'>
+                  AND APP_KEY = #{appKey}
+              </if>
+    </insert>
+
+    <select id="selectUseorgListHfn" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT CONCAT(
+                    IF (HBN_USE_YN IN ('Y', 'D', 'W'), '01',  '')
+                    ,IF (HNW_USE_YN IN ('Y', 'D', 'W'), ',02',  '')
+                    ,IF (HLF_USE_YN IN ('Y', 'D', 'W'), ',04',  '')
+                    ,IF (HCP_USE_YN IN ('Y', 'D', 'W'), ',05',  '')
+                    ,IF (HCD_USE_YN IN ('Y', 'D', 'W'), ',12',  '')
+                    ,IF (HSV_USE_YN IN ('Y', 'D', 'W'), ',14',  '')
+                    ,IF (HMB_USE_YN IN ('Y', 'D', 'W'), ',99',  '')
+                ) AS HFN_CD
+        FROM PORTAL_USEORG_INFO
+        WHERE USER_KEY = #{userKey}
+    </select>
+
+    <select id="getFeeCollectionHisListOffice" parameterType="com.hanafn.openapi.portal.views.dto.SettlementRequest" resultType="FeeCollectionInfo">
+        SELECT T1.BIL_SEQ					-- 청구일련번호
+              ,T1.BIL_MONTH				    -- 청구월
+              ,T1.HFN_CD					-- 관계사코드
+              ,T1.USEORG_CD				    -- 이용기관코드
+              ,T1.USEORG_NM				    -- 이용기관명
+              ,T1.APP_KEY					-- 앱키
+              ,T1.APP_NM					-- 앱명
+              ,T1.TOT_AMT					-- 총금액
+              ,T1.WD_AMT					-- 출금금액
+              ,T1.WD_ACNO					-- 출금계좌번호
+              ,T1.WD_MEMO					-- 출금계좌적요내용
+              ,T1.DIPO_DIV_CD				-- 입금구분코드
+              ,T1.DIPO_ACNO				    -- 입금계좌번호
+              ,T1.APLV_YN					-- 승인여부
+              ,T1.FULLPAY_YN				-- 완납여부
+              ,T1.UNPAID_AMT				-- 미납금액
+              ,T1.RECEIPT_PRINT_DTTM		-- 영수증 출력일시
+              ,T1.REG_USER					-- 등록일시
+              ,T1.REG_DTTM					-- 등록자
+              ,T1.MOD_DTTM					-- 수정일시
+              ,T1.MOD_USER					-- 수정자
+              ,COUNT(T1.BIL_SEQ) OVER() AS TOT_CNT
+              ,T2.ACC_NO
+              ,T2.ACC_CD
+        FROM PORTAL_FEE_COLLENTION_INFO T1
+        INNER JOIN PORTAL_APP_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+        WHERE 1=1
+        AND T1.HFN_CD IN (#{hfnCd})
+        <if test='bilMonth != null and bilMonth != ""'>
+            AND T1.BIL_MONTH = #{bilMonth}
+        </if>
+        AND T1.APLV_YN = 'Y'
+        <include refid="paging"></include>
+    </select>
+
+</mapper>

@@ -1,0 +1,127 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[저축 계좌조회 page]</h2>
+<style type="text/css">
+  .tg  {border-collapse:collapse;border-spacing:0;}
+  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg .tg-baqh{text-align:center;vertical-align:top}
+  .tg .tg-xozw{font-weight:bold;text-align:center;vertical-align:top}
+  .tg .tg-6opk{font-weight:bold;background-color:#00d2cb;text-align:center;vertical-align:top}
+  .tg .tg-fvov{background-color:#34cdf9;text-align:center;vertical-align:top}
+</style>
+  <table class="tg" style="undefined;table-layout: fixed; width: 816px">
+  <colgroup>
+  <col style="width: 125px">
+  <col style="width: 271px">
+  </colgroup>
+    <tr>
+      <th class="tg-xozw">변수명/메뉴명</th>
+      <th class="tg-6opk">Input Params</th>
+    </tr>
+    <tr>
+      <td class="tg-fvov">고객_식별_구분_코드</td>
+      <td class="tg-baqh"><input id="CI"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">다음페이지키</td>
+      <td class="tg-baqh"><input id="NEXT_KEY"/></td>
+    </tr>
+  </table>
+<div id="div_res">
+
+</div>
+<button id="myButton" class="myButton">송신</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){  
+    var url=encodeURI("http://localhost:8080/test-module/life/contract");
+    var params={
+        CI:$("#CI").val(),
+        NEXT_KEY:$("#NEXT_KEY").val()
+		}
+    $.ajax({      
+        type:'POST',
+        url:url,
+        data : JSON.stringify(params),
+        contentType:'application/json; charset=UTF-8',
+        dataType: 'json',
+        success:function(response){
+          if (response != undefined) {
+            if (response.dataHeader != undefined) {
+              if (response.dataHeader.GW_RSLT_CD != '1200') {
+                alert (response.dataHeader.GW_RSLT_MSG);
+              }
+            } else {
+              alert("("+response.status + ")" + response.error);
+            }
+          }
+<!--            reponse.prototype.tostring = function responseToString() {-->
+<!--              const resultString = this.dataBody.results.ciVl + this.dataBody.results.loanNo + this.dataBody.results.bondClosCd;-->
+<!--              return resultString;-->
+<!--            }-->
+<!--            const resultString = response.dataBody.results.toString();-->
+<!--            console.log(resultString);-->
+
+if (response.dataBody.RECORD_CNT != undefined) {
+  if (response.dataBody.RECORD_CNT.length > 0) {
+  var html = '<table class="tg" style="undefined; width: 100%">';
+  html +='<tr>';
+      html +=' <th class="tg-xozw">계좌번호</th>';
+      html +=' <th class="tg-xozw">신규일자</th>';
+      html +=' <th class="tg-xozw">만기일자</th>';
+      html +=' <th class="tg-xozw">계약금액</th>';
+      html +=' <th class="tg-xozw">수신잔액</th>';
+      html +=' <th class="tg-xozw">여신잔액</th>';
+      html +=' <th class="tg-xozw">계좌상태</th>';
+     html += '<tr>';
+
+
+    for (var i = 0 ; i < response.dataBody.RECORD_CNT.length; i++) {
+    var row = response.dataBody.RECORD_CNT[i];
+      html +='<tr>';
+      html +=' <td>'+row.ACCTNO+'</td>';
+      html +=' <td>'+row.START_DATE+'</td>';
+      html +=' <td>'+row.CST_DRM_DV_V+'</td>';
+      html +=' <td>'+row.END_DATE+'</td>';
+      html +=' <td>'+row.CONTRACT_AMT+'</td>';
+      html +=' <td>'+row.DEPOSIT_BAL+'</td>';
+      html +=' <td>'+row.LOAN_BAL+'</td>';
+      html +=' <td>'+row.ACCT_STATUS+'</td>';
+     html += '<tr>'
+    }
+
+    $("#div_res").html(html);
+  }
+}
+/*
+            var list = response.dataBody.results;
+
+            $("#resultArea").html(response.dataBody.results.ciVl
+            + "\n"
+            + response.dataBody.results.loanNo
+            + "\n"
+            + response.dataBody.results.pgNcs
+            + "\n"
+            + response.dataBody.results.pgNo
+            + "\n"
+            + response.dataBody.results.bondClosCd);
+            */
+        },    
+        error:function(e){  
+            alert(e.responseText);  
+        }  
+    });  
+      
+});  
+</script>

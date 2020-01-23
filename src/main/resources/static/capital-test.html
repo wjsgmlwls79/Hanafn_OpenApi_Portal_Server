@@ -1,0 +1,185 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[캐피탈 계약현황조회 page]</h2>
+<style type="text/css">
+  .tg  {border-collapse:collapse;border-spacing:0;}
+  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg .tg-baqh{text-align:center;vertical-align:top}
+  .tg .tg-xozw{font-weight:bold;text-align:center;vertical-align:top}
+  .tg .tg-6opk{font-weight:bold;background-color:#00d2cb;text-align:center;vertical-align:top}
+  .tg .tg-fvov{background-color:#34cdf9;text-align:center;vertical-align:top}
+</style>
+  <table class="tg" style="undefined;table-layout: fixed; width: 816px">
+  <colgroup>
+  <col style="width: 125px">
+  <col style="width: 271px">
+  <col style="width: 420px">
+  </colgroup>
+    <tr>
+      <th class="tg-xozw">변수명/메뉴명</th>
+      <th class="tg-6opk">Input Params</th>
+      <th class="tg-6opk">Response</th>
+    </tr>
+    <tr>
+      <td class="tg-fvov">고객CI값</td>
+      <td class="tg-baqh"><input id="ciVl"/></td>
+      <td class="tg-baqh" rowspan="5"><p id="resultArea"></p></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">채권번호</td>
+      <td class="tg-baqh"><input id="loanNo"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">대상구분</td>
+      <td class="tg-baqh"><input id="bondClosCd"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">페이지번호</td>
+      <td class="tg-baqh"><input id="pgNo"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">페이지당 글수</td>
+      <td class="tg-baqh"><input id="pgNcs"/></td>
+    </tr>
+  </table>
+<div id="div_res">
+
+</div>
+<button id="myButton" class="myButton">송신</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){  
+    var url=encodeURI("http://localhost:8080/test-module/capital/contract");
+    var params={
+        ciVl:$("#ciVl").val(),
+		loanNo:$("#loanNo").val(),
+		bondClosCd:$("#bondClosCd").val(),
+		pgNo:$("#ciVl").val(),
+		pgNcs:$("#ciVl").val()
+		}
+    $.ajax({      
+        type:'POST',
+        url:url,
+        data : JSON.stringify(params),
+        contentType:'application/json; charset=UTF-8',
+        dataType: 'json',
+        success:function(response){
+          if (response != undefined) {
+            if (response.dataHeader != undefined) {
+              if (response.dataHeader.GW_RSLT_CD != '1200') {
+                alert (response.dataHeader.GW_RSLT_MSG);
+              }
+            } else {
+              alert("("+response.status + ")" + response.error);
+            }
+          }
+<!--            reponse.prototype.tostring = function responseToString() {-->
+<!--              const resultString = this.dataBody.results.ciVl + this.dataBody.results.loanNo + this.dataBody.results.bondClosCd;-->
+<!--              return resultString;-->
+<!--            }-->
+<!--            const resultString = response.dataBody.results.toString();-->
+<!--            console.log(resultString);-->
+
+if (response.dataBody.results != undefined) {
+  if (response.dataBody.results.length > 0) {
+  var html = '<table class="tg" style="undefined; width: 100%">';
+  html +='<tr>';
+      html +=' <th class="tg-xozw">loanNo</th>';
+      html +=' <th class="tg-xozw">prdtCd</th>';
+      html +=' <th class="tg-xozw">prdtNm</th>';
+      html +=' <th class="tg-xozw">autmbNo</th>';
+      html +=' <th class="tg-xozw">gnObjNm</th>';
+      html +=' <th class="tg-xozw">sccoNm</th>';
+      html +=' <th class="tg-xozw">sctsAcntNo</th>';
+      html +=' <th class="tg-xozw">uzPrid</th>';
+      html +=' <th class="tg-xozw">nrmlAmt</th>';
+      html +=' <th class="tg-xozw">paytRn</th>';
+      html +=' <th class="tg-xozw">setlPrmeAmt</th>';
+      html +=' <th class="tg-xozw">loanAmt</th>';
+      html +=' <th class="tg-xozw">loanPrncRamt</th>';
+      html +=' <th class="tg-xozw">rmbrMthNm</th>';
+      html +=' <th class="tg-xozw">setlDtCd</th>';
+      html +=' <th class="tg-xozw">reprPrdtNm</th>';
+      html +=' <th class="tg-xozw">stdrInrt</th>';
+      html +=' <th class="tg-xozw">thmmLntrAntAmt</th>';
+      html +=' <th class="tg-xozw">antRamt</th>';
+      html +=' <th class="tg-xozw">rmbrAplInrt</th>';
+      html +=' <th class="tg-xozw">loanBlotDt</th>';
+      html +=' <th class="tg-xozw">loanMcnt</th>';
+      html +=' <th class="tg-xozw">arrAmt</th>';
+      html +=' <th class="tg-xozw">dlayRpamtRto</th>';
+      html +=' <th class="tg-xozw">totPgCnt</th>';
+      html +=' <th class="tg-xozw">bondClosCd</th>';
+    //  "sccoNm": " ",        "bondClosCd": "1",        "prdtNm": "소비자신용대출",        "uzPrid": "20181130~20190311",        "prdtCd": "440015",        "loanMcnt": 24,        "loanAmt": 10000000,        "rmbrMthNm": "원리금균등분할상환",        "reprPrdtNm": " ",        "stdrInrt": 17.9,        "loanPrncRamt": 0,        "setlDtCd": "01일",        "totPgCnt": 2
+
+     html += '<tr>'
+    for (var i = 0 ; i < response.dataBody.results.length; i++) {
+    var row = response.dataBody.results[i];
+      html +='<tr>';
+      html +=' <td>'+row.loanNo+'</td>';
+      html +=' <td>'+row.prdtCd+'</td>';
+      html +=' <td>'+row.prdtNm+'</td>';
+      html +=' <td>'+row.autmbNo+'</td>';
+      html +=' <td>'+row.gnObjNm+'</td>';
+      html +=' <td>'+row.sccoNm+'</td>';
+      html +=' <td>'+row.sctsAcntNo+'</td>';
+      html +=' <td>'+row.uzPrid+'</td>';
+      html +=' <td>'+row.nrmlAmt+'</td>';
+      html +=' <td>'+row.paytRn+'</td>';
+      html +=' <td>'+row.setlPrmeAmt+'</td>';
+      html +=' <td>'+row.loanAmt+'</td>';
+      html +=' <td>'+row.loanPrncRamt+'</td>';
+      html +=' <td>'+row.rmbrMthNm+'</td>';
+      html +=' <td>'+row.setlDtCd+'</td>';
+      html +=' <td>'+row.reprPrdtNm+'</td>';
+      html +=' <td>'+row.stdrInrt+'</td>';
+      html +=' <td>'+row.thmmLntrAntAmt+'</td>';
+      html +=' <td>'+row.antRamt+'</td>';
+      html +=' <td>'+row.rmbrAplInrt+'</td>';
+      html +=' <td>'+row.loanBlotDt+'</td>';
+      html +=' <td>'+row.loanMcnt+'</td>';
+      html +=' <td>'+row.arrAmt+'</td>';
+      html +=' <td>'+row.dlayRpamtRto+'</td>';
+      html +=' <td>'+row.totPgCnt+'</td>';
+      html +=' <td>'+row.bondClosCd+'</td>';
+     html += '<tr>'
+
+
+
+    }
+
+    $("#div_res").html(html);
+  }
+}
+/*
+            var list = response.dataBody.results;
+
+            $("#resultArea").html(response.dataBody.results.ciVl
+            + "\n"
+            + response.dataBody.results.loanNo
+            + "\n"
+            + response.dataBody.results.pgNcs
+            + "\n"
+            + response.dataBody.results.pgNo
+            + "\n"
+            + response.dataBody.results.bondClosCd);
+            */
+        },    
+        error:function(e){  
+            alert(e.responseText);  
+        }  
+    });  
+      
+});  
+</script>

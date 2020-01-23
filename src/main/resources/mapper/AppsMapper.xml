@@ -1,0 +1,1395 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanafn.openapi.portal.views.repository.AppsRepository">
+	<!-- 조회 조건 -->
+	<sql id="paging">
+		LIMIT #{pageOffset} , #{pageSize}
+	</sql>
+	<sql id="whereApps">
+		<where>
+			T1.USER_KEY = T2.USER_KEY
+			AND T2.USEORG_STAT_CD = 'OK'
+			<if test='searchNm != null and searchNm != ""'>
+				AND T1.APP_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND T1.USER_KEY = #{searchUserKey}
+			</if>
+			<if test='searchStat != null and searchStat != ""'>
+				AND T1.APP_STAT_CD = #{searchStat}
+			</if>
+			<if test='searchAplvStat != null and searchAplvStat != ""'>
+				AND T1.APP_APLV_STAT_CD = #{searchAplvStat}
+			</if>
+		</where>
+	</sql>
+	<sql id="whereApiCtgr">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND T1.CTGR_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			AND T1.CTGR_STAT_CD = 'OK'
+		</where>
+	</sql>
+
+	<select id="countAppsList" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="Integer">
+		SELECT COUNT(T1.APP_KEY)
+		  FROM PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2
+		<include refid="whereApps"/>
+	</select>
+
+	<select id="selectAppAll" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T3.HFN_CD
+		FROM PORTAL_APP_INFO T1
+			JOIN PORTAL_APP_API_INFO T2
+				ON T1.APP_KEY = T2.APP_KEY
+			JOIN PORTAL_API_INFO T3
+				ON T2.API_ID = T3.API_ID
+		WHERE T1.APP_STAT_CD != 'DEL'
+		<if test='searchUserKey != null and searchUserKey != ""'>
+			AND T1.USER_KEY = #{searchUserKey}
+		</if>
+		GROUP BY T1.APP_KEY
+	</select>
+
+	<select id="selectAppModAll" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T3.HFN_CD
+		FROM PORTAL_APP_INFO_MOD T1
+			JOIN PORTAL_APP_API_INFO T2
+				ON T1.APP_KEY = T2.APP_KEY
+			JOIN PORTAL_API_INFO T3
+				ON T2.API_ID = T3.API_ID
+		WHERE T1.APP_STAT_CD != 'DEL'
+		<if test='searchUserKey != null and searchUserKey != ""'>
+			AND T1.USER_KEY = #{searchUserKey}
+		</if>
+		GROUP BY T1.APP_KEY
+	</select>
+
+	<select id="selectAppsList" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT *
+			,  IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		  FROM PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2
+		<include refid="whereApps"/>
+		 ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="selectAppListAll" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T2.HFN_CD
+		FROM (( SELECT * FROM PORTAL_APP_INFO )
+		UNION ALL
+		( SELECT * FROM PORTAL_APP_INFO_MOD )) T1
+		JOIN PORTAL_APP_API_INFO T2
+		ON T1.APP_KEY = T2.APP_KEY
+		WHERE T1.USER_KEY = #{searchUserKey}
+		AND T1.APP_STAT_CD != 'DEL'
+		GROUP BY T1.APP_KEY
+	</select>
+
+	<update id="updateCancelApp" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest">
+		UPDATE PORTAL_APP_INFO
+		   SET APP_APLV_STAT_CD = 'CANCEL'
+			  , MOD_DTTM = NOW()
+			  , REQ_CANCEL_CTNT = #{reqCancelCtnt}
+		 WHERE APP_KEY = #{appKey}
+		   AND APP_APLV_STAT_CD = 'REQ'
+	</update>
+	<update id="updateAppStatCd" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest">
+		UPDATE PORTAL_APP_INFO
+		   SET APP_STAT_CD = #{appStatCd}
+			  , MOD_DTTM = NOW()
+			  , MOD_USER = #{modUserId}
+		 WHERE APP_KEY = #{appKey}
+	</update>
+	<insert id="insertApp" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		INSERT INTO PORTAL_APP_INFO SELECT * FROM PORTAL_APP_INFO_MOD WHERE APP_KEY = #{appKey}
+	</insert>
+	<insert id="deleteApp" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		DELETE FROM PORTAL_APP_INFO WHERE APP_KEY = #{appKey}
+	</insert>
+
+	<insert id="insertAppInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		INSERT INTO PORTAL_APP_INFO (
+											APP_KEY
+											,APP_NM
+											,ACC_CD
+											,ACC_NO
+											,APP_STAT_CD
+											,APP_APLV_STAT_CD
+											,APP_CLIENT_ID
+											,APP_SCR
+											,APP_SVC_ST_DT
+											,APP_SVC_EN_DT
+											,APP_CTNT
+											,USER_KEY
+											,TERM_ETD_YN
+											,APP_SCR_REISU_YN
+											,REQ_CANCEL_CTNT
+											,REG_DTTM
+											,REG_USER
+											,MOD_DTTM
+											,MOD_USER
+											,OFFICIAL_DOC_NO
+										)
+										VALUES (
+											#{appKey}
+											,#{appNm}
+											,#{accCd}
+											,#{accNo}
+											,'WAIT'
+											,'REQ'
+											,#{appClientId}
+											,#{appScr}
+											,#{appSvcStDt}
+											,#{appSvcEnDt}
+											,#{appCtnt}
+											,#{userKey}
+											,'N'
+											,'N'
+											,#{reqCancelCtnt}
+											,#{regDttm}
+											,#{regUserId}
+											,#{modDttm}
+										    ,#{modUserId}
+											,#{officialDocNo}
+										)
+	</insert>
+	<insert id="insertAppMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		INSERT INTO PORTAL_APP_INFO_MOD
+		(
+			APP_KEY
+			,APP_NM
+			,ACC_CD
+			,ACC_NO
+			,APP_STAT_CD
+			,APP_APLV_STAT_CD
+			,APP_CLIENT_ID
+			,APP_SCR
+			,APP_SVC_ST_DT
+			,APP_SVC_EN_DT
+			,APP_CTNT
+			,USER_KEY
+			,TERM_ETD_YN
+			,APP_SCR_REISU_YN
+			,REG_DTTM
+			,REG_USER
+		)
+		VALUES (
+			#{appKey}
+			,#{appNm}
+			,#{accCd}
+			,#{accNo}
+			,'WAIT'
+			,'REQ'
+			,#{appClientId}
+			,#{appScr}
+			,#{appSvcStDt}
+			,#{appSvcEnDt}
+			,#{appCtnt}
+			,#{userKey}
+			,'N'
+		<choose>
+			<when test='appScrReisuYn != null and appScrReisuYn != ""'>,#{appScrReisuYn}</when>
+			<otherwise>,'N'</otherwise>
+		</choose>
+		<choose>
+			<when test='regDttm != null and regDttm != ""'>,#{regDttm}</when>
+			<otherwise>,NOW()</otherwise>
+		</choose>
+			,#{regUserId}
+		)
+	</insert>
+
+	<insert id="insertAppModForUpdate" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		INSERT INTO PORTAL_APP_INFO_MOD
+		(
+		APP_KEY
+		,APP_NM
+		,ACC_CD
+		,ACC_NO
+		,APP_STAT_CD
+		,APP_APLV_STAT_CD
+		,APP_CLIENT_ID
+		,APP_SCR
+		,NEW_APP_CLIENT_ID
+		,NEW_APP_SCR
+		,APP_SVC_ST_DT
+		,APP_SVC_EN_DT
+		,APP_CTNT
+		,USER_KEY
+		,TERM_ETD_YN
+		,APP_SCR_REISU_YN
+		,REG_DTTM
+		,REG_USER
+		,MOD_DTTM
+		,MOD_USER
+		)
+		VALUES (
+		#{appKey}
+		,#{appNm}
+		,#{accCd}
+		,#{accNo}
+		,#{appStatCd}
+		,'REQ'
+		,#{appClientId}
+		,#{appScr}
+		,#{newAppClientId}
+		,#{newAppScr}
+		,#{appSvcStDt}
+		,#{appSvcEnDt}
+		,#{appCtnt}
+		,#{userKey}
+		,'N'
+		,#{appScrReisuYn}
+		,#{regDttm}
+		,#{regUserId}
+		,NOW()
+		,#{modUserId}
+		)
+	</insert>
+
+
+	<update id="appStatChange" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_INFO
+		SET
+			<if test='appStatCd != null and appStatCd != ""'>
+		    APP_STAT_CD = #{appStatCd},
+			</if>
+			APP_APLV_STAT_CD = #{appAplvStatCd}
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppApiInfoByNForWait" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_API_INFO
+		SET USE_FL = 'N'
+		  , MOD_DTTM = NOW()
+		  , MOD_USER = #{modUserId}
+          <if test='aplvSeqNo != null and aplvSeqNo != ""'>
+          , APLV_SEQ_NO = #{aplvSeqNo}
+          </if>
+		WHERE APP_KEY = #{appKey}
+			AND USE_FL = 'WAIT'
+	</update>
+
+	<update id="updateAppChannelInfoByNForWait" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_CHANNL_INFO
+		SET USE_FL = 'N'
+		  , MOD_DTTM = NOW()
+		  , MOD_USER = #{modUserId}
+		  <if test='aplvSeqNo != null and aplvSeqNo != ""'>
+		  , APLV_SEQ_NO = #{aplvSeqNo}
+		  </if>
+		WHERE APP_KEY = #{appKey}
+		  AND USE_FL = 'WAIT'
+	</update>
+
+	<delete id="deleteAppMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		DELETE FROM PORTAL_APP_INFO_MOD WHERE APP_KEY = #{appKey}
+	</delete>
+
+	<!-- 앱 삭제: 실제 삭제가 아닌, APP_STAT_CD를 DELETE로 변경 -->
+	<delete id="appDel" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_INFO
+		SET APP_STAT_CD = 'DEL'
+			, MOD_DTTM = NOW()
+		WHERE APP_KEY = #{appKey}
+	</delete>
+
+	<insert id="insertAppCnlKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsCnlKeyRequest">
+		INSERT INTO PORTAL_APP_CHANNL_INFO (
+												SEQ_NO
+												,CNL_KEY
+												,APP_KEY
+												,REG_DTTM
+												,REG_USER
+												,USE_FL
+											)
+									VALUES (
+												DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+												,#{cnlKey}
+												,#{appKey}
+												,NOW()
+												,#{regUserId}
+												,#{useFl}
+											)
+	</insert>
+	<insert id="insertAppApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsApiInfoRequest">
+		INSERT INTO PORTAL_APP_API_INFO (
+												SEQ_NO
+												,APP_KEY
+												,API_ID
+												,HFN_CD
+												,REG_DTTM
+												,REG_USER
+												,USE_FL
+											)
+									VALUES (
+												DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+												,#{appKey}
+												,#{apiId}
+												,#{hfnCd}
+												,NOW()
+												,#{regUserId}
+												,#{useFl}
+											)
+	</insert>
+	<select id="selectAppModifyDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT
+			T1.APP_KEY
+			, T1.APP_NM
+			 , T1.ACC_CD
+			 , T1.ACC_NO
+			 , T1.APP_STAT_CD
+			 , T1.APP_APLV_STAT_CD
+			 , T1.APP_CLIENT_ID
+			 , T1.NEW_APP_CLIENT_ID
+			 , T1.APP_SCR
+			 , T1.NEW_APP_SCR
+			 , T1.APP_SVC_ST_DT
+			 , T1.APP_SVC_EN_DT
+			 , T1.APP_CTNT
+			 , T1.USER_KEY
+			 , T1.HOST_NM
+			 , T1.TERM_ETD_YN
+			 , T1.APP_SCR_REISU_YN
+			 , T1.REQ_CANCEL_CTNT
+			 , T1.OFFICIAL_DOC_NO
+			 , T1.DL_DTTM
+			 , T1.REG_DTTM
+			 , T1.MOD_DTTM
+			 , T1.USEORG_NM
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER),
+									(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER)))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER),
+									(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER)))) AS MOD_USER
+		     , T2.APP_SCR_VLD_DTTM
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+					(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER))) AS REG_USER_NM
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+					(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER))) AS MOD_USER_NM
+			, IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER) IS NOT NULL, 'Y', 'N') AS REG_USER_NM_ENCRYPTED
+			, IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER) IS NOT NULL, 'Y', 'N') AS MOD_USER_NM_ENCRYPTED
+		FROM	(SELECT T3.*, T4.USEORG_NM
+				FROM PORTAL_APP_INFO T3, PORTAL_USEORG_INFO T4
+				WHERE T3.USER_KEY = T4.USER_KEY)T1, PORTAL_APP_SCR_HIS T2
+		WHERE	T1.APP_CLIENT_ID = T2.APP_CLIENT_ID
+		AND		T1.APP_KEY = T2.APP_KEY
+		AND		T1.APP_KEY = #{appKey}
+
+	</select>
+
+	<select id="selectAppDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+
+		SELECT
+			T1.APP_KEY
+			 , T1.APP_NM
+			 , T1.ACC_CD
+			 , T1.ACC_NO
+			 , T1.APP_STAT_CD
+			 , T1.APP_APLV_STAT_CD
+			 , T1.APP_CLIENT_ID
+			 , T1.NEW_APP_CLIENT_ID
+			 , T1.APP_SCR
+			 , T1.NEW_APP_SCR
+			 , T1.APP_SVC_ST_DT
+			 , T1.APP_SVC_EN_DT
+			 , T1.APP_CTNT
+			 , T1.USER_KEY
+			 , T1.HOST_NM
+			 , T1.TERM_ETD_YN
+			 , T1.APP_SCR_REISU_YN
+			 , T1.REQ_CANCEL_CTNT
+			 , T1.OFFICIAL_DOC_NO
+			 , T1.DL_DTTM
+			 , T1.REG_DTTM
+			 , T1.MOD_DTTM
+			 , T1.USEORG_NM
+			 , T1.REG_USER AS REG_USER_KEY
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+			 , T2.APP_SCR_VLD_DTTM
+            , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+                IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+                    (SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER))) AS REG_USER_NM
+            , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+                IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+                    (SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER))) AS MOD_USER_NM
+
+		FROM	(SELECT T3.*, T4.USEORG_NM
+				 FROM PORTAL_APP_INFO T3, PORTAL_USEORG_INFO T4
+				 WHERE T3.USER_KEY = T4.USER_KEY)T1
+					LEFT JOIN PORTAL_APP_SCR_HIS T2 ON T1.APP_CLIENT_ID = T2.APP_CLIENT_ID AND T1.APP_KEY = T2.APP_KEY
+		WHERE	T1.APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectAppManageDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT
+			T1.APP_KEY
+			 , T1.APP_NM
+			 , T1.ACC_CD
+			 , T1.ACC_NO
+			 , T1.APP_STAT_CD
+			 , T1.APP_APLV_STAT_CD
+			 , T1.APP_CLIENT_ID
+			 , T1.NEW_APP_CLIENT_ID
+			 , T1.APP_SCR
+			 , T1.NEW_APP_SCR
+			 , T1.APP_SVC_ST_DT
+			 , T1.APP_SVC_EN_DT
+			 , T1.APP_CTNT
+			 , T1.USER_KEY
+			 , T1.HOST_NM
+			 , T1.TERM_ETD_YN
+			 , T1.APP_SCR_REISU_YN
+			 , T1.REQ_CANCEL_CTNT
+			 , T1.OFFICIAL_DOC_NO
+			 , T1.DL_DTTM
+			 , T1.REG_DTTM
+			 , T1.MOD_DTTM
+			 , T1.USEORG_NM
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER),
+									(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER)))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER),
+									(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER)))) AS MOD_USER
+			 , T2.APP_SCR_VLD_DTTM
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+					(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER))) AS REG_USER_NM
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+					(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER))) AS MOD_USER_NM
+			, IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER) IS NOT NULL, 'Y', 'N') AS REG_USER_NM_ENCRYPTED
+			, IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER) IS NOT NULL, 'Y', 'N') AS MOD_USER_NM_ENCRYPTED
+		FROM	(SELECT T3.*, T4.USEORG_NM
+				 FROM PORTAL_APP_INFO_MOD T3, PORTAL_USEORG_INFO T4
+				 WHERE T3.USER_KEY = T4.USER_KEY)T1
+					LEFT JOIN PORTAL_APP_SCR_HIS T2 ON T1.APP_CLIENT_ID = T2.APP_CLIENT_ID AND T1.APP_KEY = T2.APP_KEY
+		WHERE	T1.APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectAppApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appApiInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		  FROM PORTAL_APP_API_INFO T1
+		 WHERE APP_KEY = #{appKey}
+		   AND USE_FL = 'Y'
+	</select>
+
+	<select id="selectAppApiInfoDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appApiInfo">
+		SELECT *
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_API_INFO T1
+		WHERE APP_KEY = #{appKey}
+		 	AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="selectAppCnlInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appClnInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		  FROM PORTAL_APP_CHANNL_INFO T1
+		 WHERE APP_KEY = #{appKey}
+		   AND USE_FL = 'Y'
+	</select>
+
+	<select id="selectAppCnlInfoDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appClnInfo">
+		SELECT *
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_CHANNL_INFO T1
+		WHERE APP_KEY = #{appKey}
+			AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="selectAppApiInfoWait" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appApiInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_API_INFO T1
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="selectAppCnlInfoWait" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appClnInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_CHANNL_INFO T1
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="selectApi" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="api">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		  FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2
+		 WHERE T1.CTGR_CD = T2.CTGR_CD
+		   AND API_ID = #{apiId}
+	</select>
+	<update id="updateAppInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_INFO
+		   SET APP_NM = #{appNm}
+			  , APP_CTNT = #{appCtnt}
+			  , MOD_DTTM = NOW()
+		 WHERE APP_KEY = #{appKey}
+	</update>
+	<insert id="updateAppInfoMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		INSERT INTO PORTAL_APP_INFO_MOD
+		(
+			APP_KEY
+			,APP_NM
+			,APP_CD
+			,APP_NO
+			,APP_STAT_CD
+			,APP_APLV_STAT_CD
+			,APP_SCR
+			,APP_SVC_ST_DT
+			,APP_SVC_EN_DT
+			,APP_CTNT
+			,USER_KEY
+			,TERM_ETD_YN
+			,APP_SCR_REISU_YN
+			,REG_DTTM
+			,MOD_DTTM
+		)
+		VALUES
+		(
+			#{appKey}
+			,#{appNm}
+			,#{accCd}
+			,#{accNo}
+			,'WAIT'
+			,'REQ'
+			,#{appScr}
+			,#{appSvcStDt}
+			,#{appSvcEnDt}
+			,#{appCtnt}
+			,#{userKey}
+			,'N'
+			,'N'
+			,#{regDttm}
+			,NOW()
+		)
+	</insert>
+	<insert id="backupAppInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+        INSERT INTO PORTAL_APP_INFO_HIS (SEQ_NO, APP_KEY, APP_NM, ACC_CD, ACC_NO, APP_STAT_CD, APP_APLV_STAT_CD, APP_CLIENT_ID,
+                                         NEW_APP_CLIENT_ID, APP_SCR, NEW_APP_SCR, APP_SVC_ST_DT, APP_SVC_EN_DT, APP_CTNT,
+                                         USER_KEY, HOST_NM, TERM_ETD_YN, APP_SCR_REISU_YN, REQ_CANCEL_CTNT, OFFICIAL_DOC_NO,
+                                         DL_DTTM, REG_DTTM, REG_USER, MOD_DTTM, MOD_USER)
+        SELECT #{seqNo}
+             , T1.APP_KEY
+             , T1.APP_NM
+             , T1.ACC_CD
+             , T1.ACC_NO
+             , T1.APP_STAT_CD
+             , T1.APP_APLV_STAT_CD
+             , T1.APP_CLIENT_ID
+             , T1.NEW_APP_CLIENT_ID
+             , T1.APP_SCR
+             , T1.NEW_APP_SCR
+             , T1.APP_SVC_ST_DT
+             , T1.APP_SVC_EN_DT
+             , T1.APP_CTNT
+             , T1.USER_KEY
+             , T1.HOST_NM
+             , T1.TERM_ETD_YN
+             , T1.APP_SCR_REISU_YN
+             , T1.REQ_CANCEL_CTNT
+             , T1.OFFICIAL_DOC_NO
+             , T1.DL_DTTM
+             , T1.REG_DTTM
+			 , T1.REG_USER
+             , T1.MOD_DTTM
+			 , T1.MOD_USER
+        FROM PORTAL_APP_INFO T1
+        WHERE T1.APP_KEY = #{appKey}
+	</insert>
+
+	<insert id="backupAppInfoReject" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APP_INFO_HIS (SEQ_NO, APP_KEY, APP_NM, ACC_CD, ACC_NO, APP_STAT_CD, APP_APLV_STAT_CD, APP_CLIENT_ID,
+		NEW_APP_CLIENT_ID, APP_SCR, NEW_APP_SCR, APP_SVC_ST_DT, APP_SVC_EN_DT, APP_CTNT,
+		USER_KEY, HOST_NM, TERM_ETD_YN, APP_SCR_REISU_YN, REQ_CANCEL_CTNT, OFFICIAL_DOC_NO,
+		DL_DTTM, REG_DTTM, REG_USER, MOD_DTTM, MOD_USER, APLV_SEQ_NO)
+		SELECT #{seqNo}
+		, T1.APP_KEY
+		, T1.APP_NM
+		, T1.ACC_CD
+		, T1.ACC_NO
+		, T1.APP_STAT_CD
+		, #{appAplvStatCd}
+		, T1.APP_CLIENT_ID
+		, T1.NEW_APP_CLIENT_ID
+		, T1.APP_SCR
+		, T1.NEW_APP_SCR
+		, T1.APP_SVC_ST_DT
+		, T1.APP_SVC_EN_DT
+		, T1.APP_CTNT
+		, T1.USER_KEY
+		, T1.HOST_NM
+		, T1.TERM_ETD_YN
+		, T1.APP_SCR_REISU_YN
+		, T1.REQ_CANCEL_CTNT
+		, T1.OFFICIAL_DOC_NO
+		, T1.DL_DTTM
+		, T1.REG_DTTM
+		, T1.REG_USER
+		, T1.MOD_DTTM
+		, T1.MOD_USER
+		, #{aplvSeqNo}
+		FROM PORTAL_APP_INFO_MOD T1
+		WHERE T1.APP_KEY = #{appKey}
+	</insert>
+
+	<!--
+	<delete id="delAppCnlInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		DELETE FROM PORTAL_APP_CHANNL_INFO
+		 WHERE APP_KEY = #{appKey}
+		   AND CNL_KEY = #{cnlKey}
+	</delete>
+	<delete id="delAppApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		DELETE FROM PORTAL_APP_API_INFO
+		 WHERE APP_KEY = #{appKey}
+		   AND API_ID = #{apiId}
+	</delete>
+	-->
+
+	<update id="delAppCnlInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsCnlKeyRequest">
+		UPDATE PORTAL_APP_CHANNL_INFO
+		SET MOD_DTTM = NOW()
+			, USE_FL = 'N'
+			, MOD_USER = #{regUserId}
+		WHERE APP_KEY = #{appKey}
+		AND CNL_KEY = #{cnlKey}
+	</update>
+
+	<update id="delAppApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsApiInfoRequest">
+		UPDATE PORTAL_APP_API_INFO
+		SET MOD_DTTM = NOW()
+		  	, MOD_USER = #{regUserId}
+			, USE_FL = 'N'
+		WHERE APP_KEY = #{appKey}
+		AND API_ID = #{apiId}
+	</update>
+
+	<update id="updateAppCnlInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsCnlKeyRequest">
+		UPDATE PORTAL_APP_CHANNL_INFO
+		SET USE_FL = 'Y'
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsApiInfoRequest">
+		UPDATE PORTAL_APP_API_INFO
+		SET USE_FL = 'Y'
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<!-- 앱 key download 시간 세팅 -->
+	<update id="updateAppDldttm" parameterType="String">
+		UPDATE PORTAL_APP_INFO
+		SET DL_DTTM = NOW()
+		WHERE APP_KEY = #{value}
+	</update>
+
+	<!-- 서비스 기간 연장 -->
+    <update id="updateAppTerm" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+        UPDATE PORTAL_APP_INFO
+           SET TERM_ETD_YN = 'Y'
+	          , APP_APLV_STAT_CD = 'REQ'
+	          , MOD_DTTM = NOW()
+        	  , MOD_USER = #{modUserId}
+         WHERE APP_KEY = #{appKey}
+    </update>
+
+	<!-- 앱Secret 재발급 -->
+	<update id="updateAppScr" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_INFO
+		   SET APP_SCR_REISU_YN = 'Y'
+			  , NEW_APP_CLIENT_ID = #{newAppClientId}
+			  , NEW_APP_SCR = #{newAppScr}
+			  , MOD_DTTM = NOW()
+			  , MOD_USER = #{modUserId}
+		 WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppScrMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		UPDATE PORTAL_APP_INFO_MOD
+		SET APP_SCR_REISU_YN = 'Y'
+		, NEW_APP_CLIENT_ID = #{newAppClientId}
+		, NEW_APP_SCR = #{newAppScr}
+		, MOD_DTTM = NOW()
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppScrHis" parameterType="com.hanafn.openapi.portal.views.dto.AppsScrRequest">
+		UPDATE PORTAL_APP_SCR_HIS
+		   SET APP_SCR_VLD_DTTM = #{appScrVldDttm}
+			  , MOD_DTTM = NOW()
+		      , MOD_USER = #{modUserId}
+			  , APP_SCR_PROC_TGT_YN = 'Y'
+		 WHERE APP_KEY = #{appKey}
+		 AND EXPIRE_YN = 'N'
+	</update>
+	<insert id="insertAppNewScrHis" parameterType="com.hanafn.openapi.portal.views.dto.AppsScrRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+				SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APP_SCR_HIS (
+											SEQ_NO
+											,APP_KEY
+											,APP_CLIENT_ID
+											,APP_SCR
+											,APP_SCR_VLD_DTTM
+											,REG_DTTM
+											,REG_USER
+										)
+								VALUES (
+											#{seqNo}
+											,#{appKey}
+											,#{appClientId}
+											,#{appScr}
+											,#{appScrVldDttm}
+											,NOW()
+											,#{regUserId}
+										)
+	</insert>
+
+	<select id="keyReturn" parameterType="com.hanafn.openapi.portal.views.dto.AppsScrRequest" resultType="apps">
+		SELECT APP_KEY, APP_CLIENT_ID, APP_SCR
+		FROM PORTAL_APP_INFO
+		WHERE APP_KEY = #{appKey}
+	</select>
+
+	<select id="hfnUserRole" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="hfnuserrole">
+		SELECT T1.USER_KEY
+			, T1.HFN_CD
+			, T2.HFN_NM
+			, T1.ACCESS_CD
+		FROM PORTAL_HFN_USER_INFO T1, PORTAL_HFN_INFO T2
+		WHERE T1.USER_KEY = #{userKey}
+			AND T1.HFN_CD = T2.HFN_CD
+	</select>
+
+    <select id="useorgList" parameterType="com.hanafn.openapi.portal.views.dto.HfnUseorgListRequest" resultType="useorglist">
+		SELECT 	USER_KEY, USEORG_NM
+		FROM 	PORTAL_USEORG_INFO
+		WHERE 	USEORG_STAT_CD = 'OK'
+		<choose>
+			<when test='hfnCd == 01'>
+				AND HBN_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 02'>
+				AND HNW_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 04'>
+				AND HLF_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 05'>
+				AND HCP_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 12'>
+				AND HCD_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 14'>
+				AND HSV_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 99'>
+				AND HMB_USE_YN = 'Y'
+			</when>
+			<when test='hfnCd == 07'>
+				AND USER_KEY = NULL
+			</when>
+			<when test='hfnCd == "00"'>
+				AND USER_KEY = NULL
+			</when>
+			<otherwise>
+
+			</otherwise>
+		</choose>
+    </select>
+
+	<sql id="whereAppSelectedLists">
+		<where>
+			T5.APP_STAT_CD != 'DEL'
+			AND T5.USEORG_STAT_CD = 'OK'
+			<if test='searchNm != null and searchNm != ""'>
+				AND T5.APP_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND T5.USER_KEY = #{searchUserKey}
+			</if>
+			<if test='searchStat != null and searchStat != ""'>
+				AND T5.APP_STAT_CD = #{searchStat}
+			</if>
+			<if test='searchAplvStat != null and searchAplvStat != ""'>
+				AND T5.APP_APLV_STAT_CD = #{searchAplvStat}
+			</if>
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T6.HFN_CD = #{searchHfnCd}
+			</if>
+			<choose>
+				<when test='searchHfnCd == 01'>
+					AND T5.HBN_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 02'>
+					AND T5.HNW_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 04'>
+					AND T5.HLF_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 05'>
+					AND T5.HCP_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 12'>
+					AND T5.HCD_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 14'>
+					AND T5.HSV_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 99'>
+					AND T5.HMB_USE_YN = 'Y'
+				</when>
+				<!---
+				<otherwise>
+					AND T5.USEORG_CD = NULL
+				</otherwise>
+				-->
+			</choose>
+		</where>
+	</sql>
+
+	<select id="appListSelected" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+
+		SELECT DISTINCT T5.APP_KEY
+			, T5.APP_NM
+			, T5.USER_KEY
+			, T5.USEORG_NM
+			, T5.APP_SVC_ST_DT
+			, T5.APP_SVC_EN_DT
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T5.REG_USER),
+                IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T5.REG_USER),
+                IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T5.REG_USER),
+                (SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T5.REG_USER)))) AS REG_USER
+			, T5.APP_APLV_STAT_CD
+			, T5.APP_STAT_CD
+			, T6.HFN_CD
+			, T6.HFN_NM
+			, T5.USEORG_STAT_CD
+            , T5.APP_CLIENT_ID
+            , IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T5.REG_USER) IS NOT NULL, 'Y', 'N') AS USER_NM_ENCRYPTED
+		FROM
+			(SELECT T1.APP_KEY, T1.APP_NM, T1.USER_KEY, T1.APP_SVC_ST_DT, T1.APP_SVC_EN_DT, T1.REG_USER, T1.APP_APLV_STAT_CD, T1.APP_STAT_CD, T2.USEORG_NM, T2.USEORG_STAT_CD
+					,T2.HBN_USE_YN, T2.HNW_USE_YN, T2.HLF_USE_YN, T2.HCP_USE_YN, T2.HCD_USE_YN, T2.HSV_USE_YN, T2.HMB_USE_YN, T1.APP_CLIENT_ID
+			FROM
+        (
+        SELECT APP_KEY,
+                APP_NM,
+                USER_KEY,
+                APP_SVC_ST_DT,
+                APP_SVC_EN_DT,
+                REG_USER,
+                APP_APLV_STAT_CD,
+                APP_STAT_CD,
+                APP_CLIENT_ID
+                FROM PORTAL_APP_INFO_MOD
+                WHERE APP_KEY IN (select APLV_REQ_CD
+                from PORTAL_APLV_INFO
+                where APLV_STAT_CD = 'WAIT')
+        UNION ALL
+        SELECT APP_KEY,
+                APP_NM,
+                USER_KEY,
+                APP_SVC_ST_DT,
+                APP_SVC_EN_DT,
+				REG_USER,
+                APP_APLV_STAT_CD,
+                APP_STAT_CD,
+                APP_CLIENT_ID
+                FROM PORTAL_APP_INFO
+                WHERE APP_KEY NOT IN (SELECT APP_KEY
+                FROM PORTAL_APP_INFO_MOD
+                WHERE APP_KEY IN (select APLV_REQ_CD
+                from PORTAL_APLV_INFO
+                where APLV_STAT_CD =
+                'WAIT'))
+        ) T1
+			INNER JOIN
+				(SELECT USER_KEY, USEORG_NM, USEORG_STAT_CD, HBN_USE_YN, HNW_USE_YN, HLF_USE_YN, HCP_USE_YN, HCD_USE_YN, HSV_USE_YN, HMB_USE_YN FROM PORTAL_USEORG_INFO) T2
+			ON T1.USER_KEY = T2.USER_KEY
+			) T5
+
+		INNER JOIN
+
+			(SELECT T3.APP_KEY, T3.API_ID, T3.HFN_CD, T4.HFN_NM
+			FROM
+				(SELECT APP_KEY, API_ID, HFN_CD FROM PORTAL_APP_API_INFO) T3
+			INNER JOIN
+				(SELECT HFN_CD, HFN_NM FROM PORTAL_HFN_INFO) T4
+			ON T3.HFN_CD = T4.HFN_CD
+			) T6
+
+		ON T5.APP_KEY = T6.APP_KEY
+		<include refid="whereAppSelectedLists"/>
+		ORDER BY T5.APP_NM ASC
+		LIMIT #{pageOffset} , #{pageSize}
+
+	</select>
+
+	<select id="appListSelectedNoLPaging" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+
+		SELECT DISTINCT T5.APP_KEY
+		, T5.APP_NM
+		, T5.USER_KEY
+		, T5.USEORG_NM
+		, T5.APP_SVC_ST_DT
+		, T5.APP_SVC_EN_DT
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T5.REG_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T5.REG_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T5.REG_USER))) AS REG_USER
+		, T5.APP_APLV_STAT_CD
+		, T5.APP_STAT_CD
+		, T6.HFN_CD
+		, T6.HFN_NM
+		, T5.USEORG_STAT_CD
+
+		FROM
+		(SELECT T1.APP_KEY, T1.APP_NM, T1.USER_KEY, T1.APP_SVC_ST_DT, T1.APP_SVC_EN_DT, T1.REG_USER, T1.APP_APLV_STAT_CD, T1.APP_STAT_CD, T2.USEORG_NM, T2.USEORG_STAT_CD
+		,T2.HBN_USE_YN, T2.HNW_USE_YN, T2.HLF_USE_YN, T2.HCP_USE_YN, T2.HCD_USE_YN, T2.HSV_USE_YN, T2.HMB_USE_YN
+		FROM
+		(
+		SELECT APP_KEY,
+		APP_NM,
+		USER_KEY,
+		APP_SVC_ST_DT,
+		APP_SVC_EN_DT,
+		REG_USER,
+		APP_APLV_STAT_CD,
+		APP_STAT_CD
+		FROM PORTAL_APP_INFO_MOD
+		WHERE APP_KEY IN (select APLV_REQ_CD
+		from PORTAL_APLV_INFO
+		where APLV_STAT_CD = 'WAIT')
+		UNION ALL
+		SELECT APP_KEY,
+		APP_NM,
+		USER_KEY,
+		APP_SVC_ST_DT,
+		APP_SVC_EN_DT,
+		REG_USER,
+		APP_APLV_STAT_CD,
+		APP_STAT_CD
+		FROM PORTAL_APP_INFO
+		WHERE APP_KEY NOT IN (SELECT APP_KEY
+		FROM PORTAL_APP_INFO_MOD
+		WHERE APP_KEY IN (select APLV_REQ_CD
+		from PORTAL_APLV_INFO
+		where APLV_STAT_CD =
+		'WAIT'))
+		) T1
+		INNER JOIN
+		(SELECT USER_KEY, USEORG_NM, USEORG_STAT_CD, HBN_USE_YN, HNW_USE_YN, HLF_USE_YN, HCP_USE_YN, HCD_USE_YN, HSV_USE_YN, HMB_USE_YN FROM PORTAL_USEORG_INFO) T2
+		ON T1.USER_KEY = T2.USER_KEY
+		) T5
+
+		INNER JOIN
+
+		(SELECT T3.APP_KEY, T3.API_ID, T3.HFN_CD, T4.HFN_NM
+		FROM
+		(SELECT APP_KEY, API_ID, HFN_CD FROM PORTAL_APP_API_INFO) T3
+		INNER JOIN
+		(SELECT HFN_CD, HFN_NM FROM PORTAL_HFN_INFO) T4
+		ON T3.HFN_CD = T4.HFN_CD
+		) T6
+
+		ON T5.APP_KEY = T6.APP_KEY
+		<include refid="whereAppSelectedLists"/>
+		ORDER BY T5.APP_NM ASC
+
+	</select>
+
+	<select id="countAppListSelected" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="Integer">
+		SELECT COUNT(DISTINCT T5.APP_KEY)
+
+		FROM
+			(SELECT T1.APP_KEY, T1.APP_NM, T1.USER_KEY, T1.APP_SVC_ST_DT, T1.APP_SVC_EN_DT, T1.APP_APLV_STAT_CD, T1.APP_STAT_CD, T2.USEORG_NM, T2.USEORG_STAT_CD
+					,T2.HBN_USE_YN, T2.HNW_USE_YN, T2.HLF_USE_YN, T2.HCP_USE_YN, T2.HCD_USE_YN, T2.HSV_USE_YN, T2.HMB_USE_YN
+			FROM
+				(
+        SELECT APP_KEY,
+                APP_NM,
+                USER_KEY,
+                APP_SVC_ST_DT,
+                APP_SVC_EN_DT,
+                APP_APLV_STAT_CD,
+                APP_STAT_CD
+        FROM PORTAL_APP_INFO_MOD
+            WHERE APP_KEY IN (select APLV_REQ_CD
+                                from PORTAL_APLV_INFO
+                                where APLV_STAT_CD = 'WAIT')
+        UNION ALL
+        SELECT APP_KEY,
+                APP_NM,
+                USER_KEY,
+                APP_SVC_ST_DT,
+                APP_SVC_EN_DT,
+                APP_APLV_STAT_CD,
+                APP_STAT_CD
+        FROM PORTAL_APP_INFO
+        WHERE APP_KEY NOT IN (SELECT APP_KEY
+                                FROM PORTAL_APP_INFO_MOD
+                                WHERE APP_KEY IN (select APLV_REQ_CD
+                                                    from PORTAL_APLV_INFO
+                                                    where APLV_STAT_CD =
+                                                        'WAIT'))
+        ) T1
+			INNER JOIN
+				(SELECT USER_KEY, USEORG_NM, USEORG_STAT_CD, HBN_USE_YN, HNW_USE_YN, HLF_USE_YN, HCP_USE_YN, HCD_USE_YN, HSV_USE_YN, HMB_USE_YN FROM PORTAL_USEORG_INFO) T2
+			ON T1.USER_KEY = T2.USER_KEY
+			) T5
+
+		INNER JOIN
+
+			(SELECT T3.APP_KEY, T3.API_ID, T3.HFN_CD, T4.HFN_NM
+			FROM
+				(SELECT APP_KEY, API_ID, HFN_CD FROM PORTAL_APP_API_INFO) T3
+			INNER JOIN
+				(SELECT HFN_CD, HFN_NM FROM PORTAL_HFN_INFO) T4
+			ON T3.HFN_CD = T4.HFN_CD
+			) T6
+
+		ON T5.APP_KEY = T6.APP_KEY
+		<include refid="whereAppSelectedLists"/>
+	</select>
+
+	<select id="hfnCompanyAll" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="hfnuserrole">
+		SELECT HFN_CD, HFN_NM
+		FROM PORTAL_HFN_INFO
+		WHERE HFN_STS_CD = 'Y'
+		ORDER BY HFN_CD ASC
+	</select>
+
+	<!-- 승인 대기 앱 정보 조회 관련 -->
+	<!-- 승인 대기 앱 정보 조회 관련 -->
+	<select id="selectAppModDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT T1.*
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+			IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER))) AS REG_USER_NM
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+			IFNULL((SELECT USEORG_USER_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.MOD_USER))) AS MOD_USER_NM
+		FROM
+		(SELECT T3.*, T4.USEORG_NM
+		FROM PORTAL_APP_INFO_MOD T3
+		INNER JOIN PORTAL_USEORG_INFO T4
+		ON T3.USER_KEY = T4.USER_KEY
+		) T1
+		WHERE T1.APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectAppApiInfoMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appApiInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_API_INFO T1
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="selectAppCnlInfoMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="appClnInfo">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_CHANNL_INFO T1
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'WAIT'
+	</select>
+
+	<select id="countAppsListMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="Integer">
+		SELECT COUNT(T1.APP_KEY)
+		FROM PORTAL_APP_INFO_MOD T1, PORTAL_USEORG_INFO T2
+		<include refid="whereApps"/>
+	</select>
+
+	<select id="selectAppsListMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_INFO_MOD T1
+		WHERE USER_KEY = #{searchUserKey}
+	</select>
+
+	<update id="updateAppSvcTermAndOfficialDocNo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		update PORTAL_APP_INFO
+		set APP_SVC_ST_DT = #{appSvcStDt}
+			, APP_SVC_EN_DT = #{appSvcEnDt}
+			, OFFICIAL_DOC_NO = #{officialDocNo}
+		where APP_KEY = #{appKey}
+	</update>
+	<update id="updateAppModSvcTermAndOfficialDocNo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRegRequest">
+		update PORTAL_APP_INFO_MOD
+		set APP_SVC_ST_DT = #{appSvcStDt}
+		  , APP_SVC_EN_DT = #{appSvcEnDt}
+		  , OFFICIAL_DOC_NO = #{officialDocNo}
+		where APP_KEY = #{appKey}
+	</update>
+
+	<select id="selectAppListInChargeDiscountRate" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT DISTINCT T5.APP_KEY
+		, T5.APP_NM
+		, T5.USER_KEY
+
+		, T5.APP_SVC_ST_DT
+		, T5.APP_SVC_EN_DT
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T5.REG_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T5.REG_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T5.REG_USER))) AS REG_USER
+		, T5.APP_APLV_STAT_CD
+		, T5.APP_STAT_CD
+		, T6.HFN_CD
+
+
+		FROM PORTAL_APP_INFO T5
+			INNER JOIN
+
+			(SELECT T3.APP_KEY, T3.API_ID, T3.HFN_CD, T4.HFN_NM
+			FROM
+			(SELECT APP_KEY, API_ID, HFN_CD FROM PORTAL_APP_API_INFO) T3
+			INNER JOIN
+			(SELECT HFN_CD, HFN_NM FROM PORTAL_HFN_INFO) T4
+			ON T3.HFN_CD = T4.HFN_CD
+			) T6
+
+			ON T5.APP_KEY = T6.APP_KEY
+		WHERE 1 = 1
+		<if test='searchUserKey != null and searchUserKey != ""'>
+			AND T5.USER_KEY = #{searchUserKey}
+		</if>
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+		  AND T6.HFN_CD = #{searchHfnCd}
+		</if>
+		AND T5.APP_KEY IN (SELECT APP_KEY
+		FROM PORTAL_CHARGE_DISCOUNT_RATE
+		WHERE USE_FL = 'Y')
+	</select>
+
+	<select id="selectApiListInChargeDiscountRate" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="api">
+		SELECT DISTINCT PAI.API_ID
+			,PAI.API_NM
+			,PAI.API_STAT_CD
+            ,PAI.CTGR_CD
+            ,PAI.SUB_CTGR_CD
+            ,PAI.API_SVC
+            ,PAI.API_VER
+            ,PAI.API_URI
+            ,PAI.API_MTHD
+            ,PAI.API_CTNT
+            ,PAI.API_PUB_YN
+            ,PAI.HFN_CD
+            ,PAI.HFN_SVC_CD
+            ,PAI.API_ENC_YN
+            ,PAI.API_PROC_TYPE
+            ,PAI.API_PROC_URL
+            ,PAI.FEE_AMOUNT
+            ,PAI.USER_KEY
+            ,PAI.DLY_TERM_DIV
+            ,PAI.DLY_TERM_DT
+            ,PAI.DLY_TERM_TM
+            ,PAI.REG_DTTM
+		    ,IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = PAI.REG_USER),
+				  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = PAI.REG_USER),
+						 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = PAI.REG_USER))) AS REG_USER
+            ,PAI.PROC_DTTM
+			,IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = PAI.PROC_USER),
+					IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = PAI.PROC_USER),
+						   (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = PAI.PROC_USER))) AS PROC_USER
+            ,PAI.API_TOS_URL
+            ,PAI.MINIMUM_USE_NUMBER
+            ,PAI.MINIMUM_CHARGES
+		FROM PORTAL_API_INFO PAI
+				 JOIN PORTAL_APP_API_INFO PAAI on PAI.API_ID = PAAI.API_ID
+		WHERE PAAI.APP_KEY = #{appKey}
+			AND PAAI.USE_FL = 'Y'
+	</select>
+
+	<select id="appUseDefresYn" parameterType="String" resultType="String">
+		SELECT T1.USE_DEFRES_YN
+		FROM PORTAL_APP_INFO T1
+		WHERE T1.APP_KEY = #{appKey}
+	</select>
+
+	<update id="appDefresChange" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppDefresRequest">
+		UPDATE PORTAL_APP_INFO
+		SET USE_DEFRES_YN = #{useDefresYn}
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<select id="getCryptoKeyPath" parameterType="String" resultType="String">
+		SELECT KEY_PATH
+		FROM PORTAL_APP_CRYPTOKEY
+		WHERE APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectAppCryptoKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppCryptoKeyRequest" resultType="AppCryptoKey">
+		SELECT T2.APP_NM, T1.APP_KEY, T1.KEY_PATH, T3.HFN_CD
+		FROM (SELECT APP_KEY, KEY_PATH FROM PORTAL_APP_CRYPTOKEY) T1, (SELECT APP_KEY, APP_NM, APP_STAT_CD FROM PORTAL_APP_INFO) T2, (SELECT DISTINCT APP_KEY, HFN_CD FROM PORTAL_APP_API_INFO) T3
+		WHERE T1.APP_KEY = T2.APP_KEY
+		AND T2.APP_KEY = T3.APP_KEY
+		AND T2.APP_STAT_CD = 'OK'
+		<if test="searchNm != null and searchNm != ''">
+			AND ((T2.APP_NM LIKE CONCAT('%', #{searchNm}, '%')) OR (T2.APP_KEY LIKE CONCAT('%', #{searchNm}, '%')))
+		</if>
+		<if test="searchHfnCd != null and searchHfnCd != ''">
+			AND T3.HFN_CD = #{searchHfnCd}
+		</if>
+		ORDER BY T2.APP_KEY ASC
+		LIMIT #{pageOffset}, #{pageSize}
+	</select>
+
+	<select id="cntSelectAppCryptoKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppCryptoKeyRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM (SELECT APP_KEY, KEY_PATH FROM PORTAL_APP_CRYPTOKEY) T1, (SELECT APP_KEY, APP_NM, APP_STAT_CD FROM PORTAL_APP_INFO) T2, (SELECT DISTINCT APP_KEY, HFN_CD FROM PORTAL_APP_API_INFO) T3
+		WHERE T1.APP_KEY = T2.APP_KEY
+		AND T2.APP_KEY = T3.APP_KEY
+		AND T2.APP_STAT_CD = 'OK'
+		<if test="searchNm != null and searchNm != ''">
+			AND (T2.APP_NM LIKE CONCAT('%', #{searchNm}, '%')) OR (T2.APP_KEY LIKE CONCAT('%', #{searchNm}, '%'))
+		</if>
+		<if test="searchHfnCd != null and searchHfnCd != ''">
+			AND T3.HFN_CD = #{searchHfnCd}
+		</if>
+	</select>
+
+	<select id="checkCryptoKey" parameterType="String" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_APP_CRYPTOKEY
+		WHERE APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectCryptoKeyAppList" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppCryptoKeyRequest" resultType="apps">
+		SELECT T1.APP_KEY, T1.APP_NM, T2.HFN_CD
+		FROM PORTAL_APP_INFO T1, (SELECT DISTINCT APP_KEY, HFN_CD, USE_FL FROM PORTAL_APP_API_INFO) T2
+		WHERE T1.APP_KEY = T2.APP_KEY
+		AND T1.APP_STAT_CD = 'OK'
+		AND T2.USE_FL = 'Y'
+		<if test="searchNm != null and searchNm != ''">
+			AND (T1.APP_NM LIKE CONCAT('%', #{searchNm}, '%')) OR (T1.APP_KEY LIKE CONCAT('%', #{searchNm}, '%'))
+		</if>
+		<if test="searchHfnCd != null and searchHfnCd != ''">
+			AND T2.HFN_CD = #{searchHfnCd}
+		</if>
+		ORDER BY T1.APP_NM ASC
+	</select>
+
+	<insert id="saveCryptoKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$CryptoKeyFileRequest">
+		INSERT INTO PORTAL_APP_CRYPTOKEY ( APP_KEY, KEY_PATH, REG_USER, REG_DTTM ) VALUES ( #{appKey}, #{keyPath}, #{regUser}, NOW() )
+	</insert>
+
+	<select id="detailAppCryptoKey" parameterType="String" resultType="appCryptoKey">
+		SELECT T1.*, T2.APP_NM, T3.HFN_CD
+		FROM PORTAL_APP_CRYPTOKEY T1, PORTAL_APP_INFO T2, (SELECT DISTINCT APP_KEY, HFN_CD, USE_FL FROM PORTAL_APP_API_INFO) T3
+		WHERE T1.APP_KEY = T2.APP_KEY
+		AND T2.APP_KEY = T3.APP_KEY
+		AND T2.APP_STAT_CD = 'OK'
+		AND T3.USE_FL = 'Y'
+		AND T1.APP_KEY = #{appKey}
+	</select>
+
+	<update id="updateCryptoKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$CryptoKeyFileRequest">
+		UPDATE PORTAL_APP_CRYPTOKEY
+		SET KEY_PATH = #{keyPath}, MOD_USER = #{modUser}, MOD_DTTM = NOW()
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<delete id="deleteCryptoKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$CryptoKeyFileRequest">
+		DELETE FROM PORTAL_APP_CRYPTOKEY
+		WHERE APP_KEY = #{appKey}
+	</delete>
+</mapper>

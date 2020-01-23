@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property resource="application.properties" />
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+        <property name="logback.path" value="/data/logs/staging"/>
+        <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+            <withJansi>true</withJansi>
+            <encoder>
+                <pattern>%-70(%d{HH:mm:ss.SSS} %highlight(%-5level) [%logger{36}]) - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <appender name="LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${logback.path}/debug.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${logback.path}/debug.log.%d{yyyy-MM-dd}</fileNamePattern>
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%-70(%d{HH:mm:ss.SSS} %highlight(%-5level) [%logger{35}]) - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <appender name="LOG_FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <File>${logback.path}/error.log</File>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <FileNamePattern>${logback.path}/error.log.%d{yyyy-MM-dd}</FileNamePattern>
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <Pattern>%-80(%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{35} %L) - %msg %n</Pattern>
+            </encoder>
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <level>ERROR</level>
+                <onMatch>ACCEPT</onMatch>
+                <onMismatch>DENY</onMismatch>
+            </filter>
+        </appender>
+
+        <!-- JDBC -->
+        <logger name="log4jdbc.log4j2" level="INFO"/>
+        <logger name="org.springframework" level="ERROR"/>
+        <logger name="jdbc.sqlonly" level="INFO"/>
+        <logger name="jdbc.sqltiming" level="INFO"/>
+        <logger name="jdbc.audit" level="INFO"/>
+        <logger name="jdbc.resultset" level="INFO"/>
+        <logger name="jdbc.resultsettable" level="INFO"/>
+        <logger name="jdbc.connection" level="INFO"/>
+
+        <logger name="org.mybatis.spring.SqlSessionUtils" level="ERROR"/>
+        <logger name="com.zaxxer.hikari.pool.HikariPool" level="ERROR"/>
+        <logger name="org.apache.tomcat.util.net.NioEndpoint" level="ERROR"/>
+        <logger name="org.apache.tomcat.util.threads.LimitLatch" level="ERROR"/>
+        <logger name="org.apache.coyote.http11.Http11Processor" level="ERROR"/>
+
+        <root level="DEBUG">
+            <appender-ref ref="LOG_FILE"/>
+            <appender-ref ref="LOG_FILE_ERROR"/>
+        </root>
+</configuration>

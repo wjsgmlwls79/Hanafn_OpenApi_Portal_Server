@@ -1,0 +1,1132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.ApiRepository">
+	<sql id="paging">
+		LIMIT #{pageOffset} , #{pageSize}
+	</sql>
+
+	<!-- 조회 조건 -->
+	<sql id="whereApiCtgr">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND T1.CTGR_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			AND T1.CTGR_STAT_CD = 'OK'
+		</where>
+	</sql>
+
+	<sql id="whereApiSubCtgr">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND T1.SUB_CTGR_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			AND T1.SUB_CTGR_STAT_CD = 'OK'
+			AND T1.CTGR_CD = #{ctgrCd}
+		</where>
+	</sql>
+
+	<sql id="whereIncludedApiSubCtgr">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND T1.SUB_CTGR_NM LIKE CONCAT('%', #{searchNm}, '%')
+			</if>
+			AND T1.SUB_CTGR_STAT_CD = 'OK' AND T1.CTGR_CD = '${ctgrCd}'
+		</where>
+	</sql>
+
+	<sql id="whereHfn">
+		<if test='hfnCd != null and hfnCd != ""'>
+			AND T2.HFN_CD = {hfnCd}
+		</if>
+	</sql>
+
+	<!--
+		************************API CATEGORY************************
+	-->
+	<select id="selectApiCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest$ApiCtgrDetilRequest" resultType="apiCtgr">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_API_CTGR_INFO T1
+		INNER JOIN PORTAL_API_INFO T2
+		ON T1.CTGR_CD= T2.CTGR_CD
+		WHERE T1.CTGR_CD = #{ctgrCd}
+		<include refid="whereHfn"/>
+	</select>
+
+	<select id="countApiCtgrList" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest" resultType="Integer">
+		SELECT COUNT(CTGR_CD)
+		FROM PORTAL_API_CTGR_INFO T1
+		<include refid="whereApiCtgr"/>
+	</select>
+
+	<select id="selectApiCtgrList" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest" resultType="apiCtgr">
+		SELECT *
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, (SELECT COUNT(API_ID) FROM PORTAL_API_INFO T2 WHERE T2.API_STAT_CD = 'OK' AND T1.CTGR_CD = T2.CTGR_CD ) AS API_CNT
+		, (SELECT COUNT(SUB_CTGR_CD) FROM PORTAL_API_SUB_CTGR_INFO T3 WHERE T3.SUB_CTGR_STAT_CD = 'OK' AND T1.CTGR_CD = T3.CTGR_CD ) AS SUB_CTGR_CNT
+		FROM PORTAL_API_CTGR_INFO T1
+		<include refid="whereApiCtgr"/>
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<insert id="insertApiCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest$ApiCtgrRegistRequest">
+		<selectKey keyProperty="ctgrCd" order="BEFORE" resultType="string">
+			SELECT CONCAT('CTG', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 3) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			FROM (SELECT IFNULL(MAX(CTGR_CD), CONCAT('CTG', '00000')) AS MAX_CD
+			FROM PORTAL_API_CTGR_INFO
+			WHERE CTGR_CD LIKE CONCAT('CTG', '%')
+			) A
+		</selectKey>
+		INSERT INTO PORTAL_API_CTGR_INFO (
+		CTGR_CD
+		,CTGR_NM
+		,CTGR_STAT_CD
+		,CTGR_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{ctgrCd}
+		,#{ctgrNm}
+		,'OK'
+		,#{ctgrCtnt}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<update id="updateApiCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest$ApiCtgrUpdateRequest">
+		UPDATE PORTAL_API_CTGR_INFO
+		SET CTGR_NM = #{ctgrNm}
+		, CTGR_CTNT = #{ctgrCtnt}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE CTGR_CD = #{ctgrCd}
+	</update>
+
+	<select id="countApiCtgrUse" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest$ApiCtgrDeleteRequest" resultType="Integer">
+		SELECT COUNT(API_ID)
+		FROM PORTAL_API_INFO
+		WHERE API_STAT_CD = 'OK'
+		AND CTGR_CD = #{ctgrCd}
+	</select>
+
+	<update id="apiCtgrDelete" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest$ApiCtgrDeleteRequest">
+		UPDATE PORTAL_API_CTGR_INFO
+		SET CTGR_STAT_CD = 'DEL'
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE CTGR_CD = #{ctgrCd}
+	</update>
+
+	<select id="selectApiCtgrAllList" parameterType="com.hanafn.openapi.portal.views.dto.ApiCtgrRequest" resultType="apiCtgr">
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+		SELECT PACI.CTGR_CD
+			 , PACI.CTGR_NM
+		FROM PORTAL_API_CTGR_INFO PACI
+				 JOIN PORTAL_API_INFO PAI ON PACI.CTGR_CD = PAI.CTGR_CD
+		WHERE PACI.CTGR_STAT_CD = 'OK'
+		  AND PAI.API_STAT_CD = 'OK'
+		  AND PAI.HFN_CD = #{searchHfnCd}
+		GROUP BY PACI.CTGR_CD
+			   , PACI.CTGR_NM
+		ORDER BY CTGR_NM ASC
+		</if>
+		<if test='searchHfnCd == null or searchHfnCd == ""'>
+		SELECT PACI.CTGR_CD
+				, PACI.CTGR_NM
+		FROM PORTAL_API_CTGR_INFO PACI
+		WHERE PACI.CTGR_STAT_CD = 'OK'
+		GROUP BY PACI.CTGR_CD
+		, PACI.CTGR_NM
+		ORDER BY CTGR_NM ASC
+		</if>
+	</select>
+
+	<!--
+		************************API SUB CATEGORY************************
+	-->
+	<select id="selectApiSubCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest$ApiSubCtgrDetilRequest" resultType="apiSubCtgr">
+		SELECT *
+		  , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				   IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+						  (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		  , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				   IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+						  (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_API_SUB_CTGR_INFO T1
+		WHERE SUB_CTGR_CD = #{subCtgrCd}
+	</select>
+
+	<select id="selectApiSubCtgrs" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest" resultType="apiSubCtgr">
+		SELECT *
+		 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+						 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+						 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_API_SUB_CTGR_INFO T1
+		WHERE CTGR_CD = #{ctgrCd}
+	</select>
+
+	<select id="countApiSubCtgrList" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest" resultType="Integer">
+		SELECT COUNT(SUB_CTGR_CD)
+		FROM PORTAL_API_SUB_CTGR_INFO T1
+		<include refid="whereApiSubCtgr"/>
+	</select>
+
+	<select id="selectApiSubCtgrList" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest" resultType="ApiSubCtgr">
+		SELECT *
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, (SELECT COUNT(API_ID) FROM PORTAL_API_INFO T2 WHERE T2.API_STAT_CD = 'OK' AND T1.SUB_CTGR_CD = T2.SUB_CTGR_CD ) AS API_CNT
+		FROM PORTAL_API_SUB_CTGR_INFO T1
+		<include refid="whereIncludedApiSubCtgr"/>
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<insert id="insertApiSubCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest$ApiSubCtgrRegistRequest">
+		<selectKey keyProperty="subCtgrCd" order="BEFORE" resultType="string">
+			SELECT CONCAT('SCT', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 3) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			FROM (SELECT IFNULL(MAX(SUB_CTGR_CD), CONCAT('SCT', '00000')) AS MAX_CD
+			FROM PORTAL_API_SUB_CTGR_INFO
+			WHERE SUB_CTGR_CD LIKE CONCAT('SCT', '%')
+			) A
+		</selectKey>
+		INSERT INTO PORTAL_API_SUB_CTGR_INFO (
+		CTGR_CD
+		,SUB_CTGR_CD
+		,SUB_CTGR_NM
+		,SUB_CTGR_STAT_CD
+		,SUB_CTGR_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{ctgrCd}
+		,#{subCtgrCd}
+		,#{subCtgrNm}
+		,'OK'
+		,#{subCtgrCtnt}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<update id="updateApiSubCtgr" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest$ApiSubCtgrUpdateRequest">
+		UPDATE PORTAL_API_SUB_CTGR_INFO
+		SET CTGR_CD = #{ctgrCd}
+		, SUB_CTGR_NM= #{subCtgrNm}
+		, SUB_CTGR_CTNT = #{subCtgrCtnt}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE SUB_CTGR_CD = #{subCtgrCd}
+	</update>
+
+	<select id="countApiSubCtgrUse" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest$ApiSubCtgrDeleteRequest" resultType="Integer">
+		SELECT COUNT(API_ID)
+		FROM PORTAL_API_INFO
+		WHERE API_STAT_CD = 'OK'
+		AND SUB_CTGR_CD = #{subCtgrCd}
+	</select>
+
+	<update id="apiSubCtgrDelete" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest$ApiSubCtgrDeleteRequest">
+		UPDATE PORTAL_API_SUB_CTGR_INFO
+		SET SUB_CTGR_STAT_CD = 'DEL'
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE SUB_CTGR_CD = #{subCtgrCd}
+	</update>
+
+	<select id="selectApiSubCtgrAllList" parameterType="com.hanafn.openapi.portal.views.dto.ApiSubCtgrRequest" resultType="ApiSubCtgr">
+		SELECT CTGR_CD, SUB_CTGR_CD, SUB_CTGR_NM
+		FROM PORTAL_API_SUB_CTGR_INFO
+		WHERE SUB_CTGR_STAT_CD = 'OK'
+		ORDER BY SUB_CTGR_NM ASC
+	</select>
+	<!--
+		************************API************************
+	-->
+
+	<!-- 조회 조건 -->
+	<sql id="whereApi">
+		<where>
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T1.HFN_CD = #{searchHfnCd}
+			</if>
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T1.API_ID LIKE CONCAT('%', #{searchNm}, '%')
+				OR T1.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+				OR T1.API_URI LIKE CONCAT('%', #{searchNm}, '%')
+				OR T3.TAG_CD LIKE CONCAT('%', #{searchNm}, '%')
+				)
+			</if>
+			<if test='searchCtgrCd != null and searchCtgrCd != ""'>
+				AND T1.CTGR_CD = #{searchCtgrCd}
+			</if>
+			<if test='searchSubCtgrCd != null and searchSubCtgrCd != ""'>
+				AND T1.SUB_CTGR_CD = #{searchSubCtgrCd}
+			</if>
+			<if test='searchApiMthd != null and searchApiMthd != ""'>
+				AND T1.API_MTHD = #{searchApiMthd}
+			</if>
+			<if test='searchApiPubYn != null and searchApiPubYn != ""'>
+				AND T1.API_PUB_YN = #{searchApiPubYn}
+			</if>
+			<if test='searchApiStatCd != null and searchApiStatCd != ""'>
+				AND T1.API_STAT_CD = #{searchApiStatCd}
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND ( T1.API_PUB_YN = 'Y' OR(T1.API_PUB_YN = 'N' AND T1.USER_KEY = #{searchUserKey}))
+			</if>
+			AND T1.CTGR_CD = T2.CTGR_CD
+		</where>
+	</sql>
+
+	<select id="countApiList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="Integer">
+		SELECT COUNT(T1.API_ID)
+		FROM PORTAL_API_CTGR_INFO T2
+		, PORTAL_API_INFO T1
+		LEFT OUTER JOIN(SELECT API_ID
+		, GROUP_CONCAT(TAG_CD) AS TAG_CD
+		FROM PORTAL_API_TAG_INFO
+		GROUP BY API_ID) T3
+		ON T1.API_ID = T3.API_ID
+		<include refid="whereApi"/>
+		AND T1.API_STAT_CD != 'DEL'
+	</select>
+
+	<select id="selectApiList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="api">
+		SELECT *
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, (SELECT COUNT(T3.APP_KEY) FROM PORTAL_APP_API_INFO T3 JOIN PORTAL_APP_INFO T6 ON T3.APP_KEY = T6.APP_KEY WHERE T1.API_ID = T3.API_ID AND T3.USE_FL = 'Y' AND T6.APP_STAT_CD = 'OK' ) AS APP_USE_CNT
+		, (SELECT COUNT(DISTINCT T4.USER_KEY) FROM PORTAL_APP_INFO T4, PORTAL_APP_API_INFO T5 WHERE T1.API_ID = T5.API_ID AND T4.APP_KEY = T5.APP_KEY AND T5.USE_FL = 'Y' AND T4.APP_STAT_CD = 'OK') AS USEORG_USE_CNT
+		FROM PORTAL_API_CTGR_INFO T2, PORTAL_API_INFO T1
+		LEFT OUTER JOIN
+			(SELECT API_ID , GROUP_CONCAT(TAG_CD) AS TAG_CD
+			FROM PORTAL_API_TAG_INFO
+			GROUP BY API_ID) T3
+				ON T1.API_ID = T3.API_ID
+		<include refid="whereApi"/>
+		AND T1.API_STAT_CD != 'DEL'
+		GROUP BY T1.API_ID
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="selectApiListNoPaging" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="api">
+		SELECT *
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+		IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+		(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, (SELECT COUNT(T3.APP_KEY) FROM PORTAL_APP_API_INFO T3 JOIN PORTAL_APP_INFO T6 ON T3.APP_KEY = T6.APP_KEY WHERE T1.API_ID = T3.API_ID AND T3.USE_FL = 'Y' AND T6.APP_STAT_CD = 'OK' ) AS APP_USE_CNT
+		, (SELECT COUNT(DISTINCT T4.USER_KEY) FROM PORTAL_APP_INFO T4, PORTAL_APP_API_INFO T5 WHERE T1.API_ID = T5.API_ID AND T4.APP_KEY = T5.APP_KEY AND T5.USE_FL = 'Y' AND T4.APP_STAT_CD = 'OK') AS USEORG_USE_CNT
+		FROM PORTAL_API_CTGR_INFO T2, PORTAL_API_INFO T1
+		LEFT OUTER JOIN
+		(SELECT API_ID , GROUP_CONCAT(TAG_CD) AS TAG_CD
+		FROM PORTAL_API_TAG_INFO
+		GROUP BY API_ID) T3
+		ON T1.API_ID = T3.API_ID
+		<include refid="whereApi"/>
+		AND T1.API_STAT_CD != 'DEL'
+		GROUP BY T1.API_ID
+		ORDER BY T1.REG_DTTM DESC
+<!--				<include refid="paging"></include> 2019.12.18, 이용자,관리자포탈 - 앱등록,수정시 API 목록이 전체 출력되지 않는 문제로 PAGING 주석처리-->
+	</select>
+
+	<select id="selectCtgrApiList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="apiCtgr">
+		SELECT DISTINCT T2.CTGR_CD
+		,T2.CTGR_NM
+		FROM PORTAL_API_CTGR_INFO T2, PORTAL_API_INFO T1
+		LEFT OUTER JOIN
+		(SELECT API_ID , GROUP_CONCAT(TAG_CD) AS TAG_CD
+		FROM PORTAL_API_TAG_INFO
+		GROUP BY API_ID) T3
+		ON T1.API_ID = T3.API_ID
+		<include refid="whereApi"/>
+		AND T1.API_STAT_CD != 'DEL'
+		ORDER BY T1.REG_DTTM DESC
+	</select>
+
+	<select id="selectApiListCtgrs" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiCtgr">
+		SELECT T1.CTGR_NM, T1.CTGR_CD
+		FROM PORTAL_API_CTGR_INFO T1, PORTAL_API_INFO T2
+		LEFT OUTER JOIN
+		(SELECT API_ID , GROUP_CONCAT(TAG_CD) AS TAG_CD
+		FROM PORTAL_API_TAG_INFO
+		GROUP BY API_ID) T3
+		ON T2.API_ID = T3.API_ID
+		<include refid="whereApiCtgr"/>
+		AND T2.API_STAT_CD != 'DEL'
+		GROUP BY T1.CTGR_CD
+		ORDER BY T2.REG_DTTM DESC
+	</select>
+
+	<select id="selectApi" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="api">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, T2.CTGR_NM
+		FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2
+		WHERE T1.API_ID = #{apiId}
+		AND T1.CTGR_CD = T2.CTGR_CD
+	</select>
+
+	<select id="selectApiTagList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="apiTag">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_API_TAG_INFO T1
+		WHERE API_ID = #{apiId}
+		ORDER BY TAG_ORD ASC
+	</select>
+
+	<select id="selectApiColumnList" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnRequest" resultType="apiColumn">
+		SELECT *
+		FROM PORTAL_API_COLUMN_INFO
+		WHERE API_ID = #{apiId}
+		AND CLM_REQ_DIV = #{clmReqDiv}
+		ORDER BY CLM_ORD ASC
+	</select>
+
+	<select id="selectApiColumnDetailList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiColumnListRequest" resultType="apiColumnList">
+		SELECT *
+		FROM PORTAL_API_COLUMN_LIST_INFO
+		WHERE CLM_REQ_DIV = #{clmReqDiv}
+		AND CLM_LIST_CD = #{clmCd}
+		AND API_ID = #{apiId}
+		ORDER BY CLM_ORD ASC
+	</select>
+
+	<select id="selectApiStatModHisList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="apiStatModHis">
+		SELECT
+		     T1.SEQ_NO
+			 , T1.API_ID
+			 , T1.API_MOD_DIV
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 , T1.REG_DTTM
+		FROM PORTAL_API_STAT_MOD_HIS T1
+		WHERE API_ID = #{apiId}
+		ORDER BY SEQ_NO ASC
+	</select>
+
+	<select id="apiDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.ApiRegistRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_API_INFO
+		WHERE API_URL = #{apiUrl}
+	</select>
+
+	<insert id="insertApi" parameterType="com.hanafn.openapi.portal.views.dto.ApiRegistRequest">
+		<selectKey keyProperty="apiId" order="BEFORE" resultType="string">
+			SELECT CONCAT('API', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 3) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			FROM (SELECT IFNULL(MAX(API_ID), CONCAT('API', '00000')) AS MAX_CD
+			FROM PORTAL_API_INFO
+			WHERE API_ID LIKE CONCAT('API', '%')
+			) A
+		</selectKey>
+		INSERT INTO PORTAL_API_INFO (
+		API_ID
+		,API_NM
+		,API_STAT_CD
+		,CTGR_CD
+		,SUB_CTGR_CD
+		,API_SVC
+		,API_VER
+		,API_URI
+		,API_URL
+		,API_MTHD
+		,API_CTNT
+		,API_PUB_YN
+		,API_PROC_TYPE
+		,GW_TYPE
+		,HFN_SVC_CD
+		,API_PROC_URL
+		,FEE_AMOUNT
+		,USER_KEY
+		,REG_DTTM
+		,REG_USER
+		,API_TOS_URL,HFN_CD
+		,MINIMUM_USE_NUMBER
+		,MINIMUM_CHARGES
+		)
+		VALUES (
+		#{apiId}
+		,#{apiNm}
+		,'OK'
+		,#{ctgrCd}
+		,#{subCtgrCd}
+		,#{apiSvc}
+		,#{apiVer}
+		,#{apiUri}
+		,#{apiUrl}
+		,#{apiMthd}
+		,#{apiCtnt}
+		,#{apiPubYn}
+		,#{apiProcType}
+		,#{gwType}
+		,#{hfnSvcCd}
+		,#{apiProcUrl}
+		,#{feeAmount}
+		,#{userKey}
+		,NOW()
+		,#{regUserId}
+		,#{apiTosUrl}
+		,#{hfnCd}
+		,#{minimumUseNumber}
+		,#{minimumCharges}
+		)
+	</insert>
+
+	<insert id="insertApiTag" parameterType="com.hanafn.openapi.portal.views.dto.ApiTagRequest">
+		INSERT INTO PORTAL_API_TAG_INFO (
+		TAG_ORD
+		,API_ID
+		,TAG_CD
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{tagOrd}
+		,#{apiId}
+		,#{tagCd}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<insert id="insertApiColumn" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnRequest">
+		INSERT INTO PORTAL_API_COLUMN_INFO (
+		CLM_CD
+		,CLM_REQ_DIV
+		,API_ID
+		,CLM_NM
+		,CLM_ORD
+		,CLM_TYPE
+		,CLM_NCSR_YN
+		,CLM_CTNT
+		,CLM_DEF_RES
+		)
+		VALUES(
+		#{clmCd}
+		,#{clmReqDiv}
+		,#{apiId}
+		,#{clmNm}
+		,#{clmOrd}
+		,#{clmType}
+		,#{clmNcsrYn}
+		,#{clmCtnt}
+		,#{clmDefRes}
+		)
+	</insert>
+
+	<insert id="insertApiColumnList" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnListRequest">
+		INSERT INTO PORTAL_API_COLUMN_LIST_INFO (
+		CLM_LIST_CD
+		,CLM_CD
+		,CLM_REQ_DIV
+		,API_ID
+		,CLM_NM
+		,CLM_ORD
+		,CLM_TYPE
+		,CLM_NCSR_YN
+		,CLM_CTNT
+		,CLM_DEF_RES
+		)
+		VALUES(
+		#{clmListCd}
+		,#{clmCd}
+		,#{clmReqDiv}
+		,#{apiId}
+		,#{clmNm}
+		,#{clmOrd}
+		,#{clmType}
+		,#{clmNcsrYn}
+		,#{clmCtnt}
+		,#{clmDefRes}
+		)
+	</insert>
+
+	<update id="updateApi" parameterType="com.hanafn.openapi.portal.views.dto.ApiRegistRequest">
+		UPDATE PORTAL_API_INFO
+		SET API_NM = #{apiNm}
+		<if test='apiUrl != null and apiUrl != ""'>
+			, API_URL = #{apiUrl}
+		</if>
+		<if test='ctgrCd != null and ctgrCd != ""'>
+			, CTGR_CD = #{ctgrCd}
+		</if>
+		<if test='subCtgrCd != null and subCtgrCd != ""'>
+			, SUB_CTGR_CD = #{subCtgrCd}
+		</if>
+		<if test='apiMthd != null and apiMthd != ""'>
+			, API_MTHD = #{apiMthd}
+		</if>
+		<if test='apiProcType != null and apiProcType != ""'>
+			, API_PROC_TYPE = #{apiProcType}
+		</if>
+		<if test='gwType != null and gwType != ""'>
+			, GW_TYPE = #{gwType}
+		</if>
+		<if test='hfnSvcCd != null and hfnSvcCd != ""'>
+			, HFN_SVC_CD = #{hfnSvcCd}
+		</if>
+		<if test='hfnCd != null and hfnCd != ""'>
+			, HFN_CD = #{hfnCd}
+		</if>
+		<if test='apiProcUrl != null and apiProcUrl != ""'>
+			, API_PROC_URL = #{apiProcUrl}
+		</if>
+		<if test='apiTosUrl != null and apiTosUrl != ""'>
+			, API_TOS_URL = #{apiTosUrl}
+		</if>
+		<if test=' feeAmount >=0 '>
+			, FEE_AMOUNT = #{feeAmount}
+		</if>
+		<if test='apiCtnt != null and apiCtnt != ""'>
+			, API_CTNT = #{apiCtnt}
+		</if>
+		, API_PUB_YN = #{apiPubYn}
+		<if test='userKey != null and userKey != ""'>
+			, USER_KEY = #{userKey}
+		</if>
+		<if test='minimumUseNumber >= 0'>
+			, MINIMUM_USE_NUMBER = #{minimumUseNumber}
+		</if>
+		<if test='minimumCharges >= 0'>
+			, MINIMUM_CHARGES = #{minimumCharges}
+		</if>
+		, PROC_DTTM = NOW()
+		, PROC_USER = #{regUserId}
+		WHERE API_ID = #{apiId}
+	</update>
+
+	<delete id="deleteApiTag" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnRequest">
+		DELETE FROM PORTAL_API_TAG_INFO
+		WHERE API_ID = #{apiId}
+	</delete>
+
+	<delete id="deleteApiColumn" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnRequest">
+		DELETE FROM PORTAL_API_COLUMN_INFO
+		WHERE API_ID = #{apiId}
+	</delete>
+
+	<delete id="deleteApiColumnList" parameterType="com.hanafn.openapi.portal.views.dto.ApiColumnRequest">
+		DELETE FROM PORTAL_API_COLUMN_LIST_INFO
+		WHERE API_ID = #{apiId}
+	</delete>
+
+	<update id="updateApiStatClose" parameterType="com.hanafn.openapi.portal.views.dto.ApiStatModRequest">
+		UPDATE PORTAL_API_INFO
+		SET API_STAT_CD = 'CLOSE'
+		, PROC_DTTM = NOW()
+		WHERE API_ID = 'API_ID'
+	</update>
+
+	<insert id="insertApiStatModHis" parameterType="com.hanafn.openapi.portal.views.dto.ApiStatModRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_API_STAT_MOD_HIS (
+		SEQ_NO
+		,API_ID
+		,API_MOD_DIV
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{seqNo}
+		,#{apiId}
+		,#{apiModDiv}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<update id="updateApiDlyTerm" parameterType="com.hanafn.openapi.portal.views.dto.ApiStatModRequest">
+		UPDATE PORTAL_API_INFO
+		SET DLY_TERM_DIV = #{dlyTermDiv}
+		, DLY_TERM_TM = #{dlyTermTm}
+		, DLY_TERM_DT = #{dlyTermDt}
+		, PROC_DTTM = NOW()
+		, PROC_USER = #{regUserId}
+		WHERE API_ID = #{apiId}
+	</update>
+
+	<select id="selectApiDetalInfo" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="api">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.PROC_USER),
+                         IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.PROC_USER),
+                                (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.PROC_USER))) AS PROC_USER
+			, T1.PROC_USER AS PROC_ID
+		FROM PORTAL_API_INFO T1
+		WHERE API_ID = #{apiId}
+	</select>
+
+	<update id="apiStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest">
+		UPDATE PORTAL_API_INFO
+		SET API_STAT_CD = #{apiStatCd}
+		, PROC_DTTM = NOW()
+		, PROC_USER = #{regUserId}
+		WHERE API_ID = #{apiId}
+	</update>
+
+	<update id="deleteApi" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest">
+		UPDATE PORTAL_API_INFO
+		SET API_STAT_CD = #{apiStatCd}
+		, PROC_DTTM = NOW()
+		, PROC_USER = #{regUserId}
+		<if test='apiStatCd == "DEL"'>
+			WHERE API_ID = #{apiId}
+		</if>
+	</update>
+
+	<select id="selectApiAllList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiAllListRequest" resultType="api">
+		SELECT T1.API_ID
+		, T1.API_NM
+		FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2
+		WHERE T1.API_STAT_CD = 'OK'
+		AND T2.CTGR_STAT_CD = 'OK'
+		AND T1.CTGR_CD = T2.CTGR_CD
+		ORDER BY T1.REG_DTTM DESC
+	</select>
+
+	<select id="searchCtgrApiAll" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$CtgrApiAllListRequest" resultType="api">
+		SELECT T1.API_ID
+		, T1.API_NM
+		FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2
+		WHERE T1.API_STAT_CD = 'OK'
+		AND T2.CTGR_STAT_CD = 'OK'
+		<if test='searchCtgrCd != null and searchCtgrCd != ""'>
+			AND T1.CTGR_CD = #{searchCtgrCd}
+		</if>
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+		  	AND T1.HFN_CD = #{searchHfnCd}
+		</if>
+		AND T1.CTGR_CD = T2.CTGR_CD
+		ORDER BY T1.REG_DTTM DESC
+	</select>
+
+	<!-- Notice API -->
+	<select id="selectUseorgNoticeData" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDetailRequest" resultType="java.util.HashMap">
+		SELECT
+		USER_KEY, USEORG_NM, BRN, USEORG_TEL, USEORG_USER_NM, USEORG_USER_EMAIL
+		,USEORG_TEL, USEORG_USER_TEL, USEORG_ID, ENTR_CD
+		FROM PORTAL_USEORG_INFO
+		WHERE USER_KEY = #{userKey}
+		<!--			JOIN PORTAL_USER_INFO T2-->
+		<!--				ON T1.USER_KEY = T2.USER_KEY-->
+		<!--			JOIN PORTAL_USER_ROLE_INFO T3-->
+		<!--				ON T2.USER_KEY = T3.USER_KEY-->
+		<!--		WHERE T1.USER_KEY = #{userKey}-->
+		<!--			AND T3.ROLE_CD='4'-->
+	</select>
+
+	<select id="selectAppNoticeData" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="java.util.HashMap">
+		SELECT T1.USER_KEY, T1.APP_KEY, T1.APP_NM, T1.APP_SVC_ST_DT, T1.APP_SVC_EN_DT
+		FROM PORTAL_APP_INFO T1
+		<if test='appKey != null and appKey != ""'>
+			WHERE T1.APP_KEY = #{appKey}
+		</if>
+	</select>
+
+	<!-- 승인 진행중인 api 리스트 -->
+	<select id="selectAppApiAplvNoticeWait" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppApiRequest" resultType="java.util.HashMap">
+		SELECT T1.USER_KEY, T1.APP_KEY, T1.APP_NM, T3.HFN_SVC_CD, T3.API_SVC
+		, T3.API_VER, T3.API_URI, T3.API_NM, T1.ACC_NO, T4.USEORG_BANK_NO, T4.ENTR_CD
+		FROM PORTAL_APP_INFO T1
+			JOIN PORTAL_APP_API_INFO T2
+				ON T1.APP_KEY = T2.APP_KEY
+			JOIN PORTAL_API_INFO T3
+				ON T2.API_ID = T3.API_ID
+			JOIN PORTAL_USEORG_INFO T4
+				ON T4.USER_KEY = T1.USER_KEY
+		WHERE T1.APP_KEY = #{appKey}
+			AND T2.API_ID = #{apiId}
+			AND T2.USE_FL = 'Y'
+        GROUP BY T1.APP_KEY
+	</select>
+
+
+	<!-- 승인신청전 api 정보 -->
+	<select id="selectAppApiAplvNoticeOriginal" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest$AppApiRequest" resultType="java.util.HashMap">
+		SELECT T1.USER_KEY, T1.APP_KEY, T1.APP_NM, T3.HFN_SVC_CD, T3.API_SVC
+			, T3.API_VER, T3.API_URI, T3.API_NM, T1.ACC_NO, T4.USEORG_BANK_NO, T4.ENTR_CD
+		FROM PORTAL_APP_INFO T1
+			JOIN PORTAL_APP_API_INFO T2
+				ON T1.APP_KEY = T2.APP_KEY
+			JOIN PORTAL_API_INFO T3
+				ON T2.API_ID = T3.API_ID
+			JOIN PORTAL_USEORG_INFO T4
+				ON T4.USER_KEY = T1.USER_KEY
+		WHERE T1.APP_KEY = #{appKey}
+			AND T2.API_ID = #{apiId}
+			AND T2.USE_FL = 'WAIT'
+	</select>
+
+	<!-- api과금집계 -->
+	<select id="getApiChargeList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="requestApi">
+		SELECT DATE_FORMAT(concat( T4.YEAR, T4.MONTH,'01'), '%Y-%m')  AS MS_DATE                     -- 해당월
+		, T3.APP_NM                                                                             -- 앱명
+		, T2.API_NM                                                                             -- API 명
+		, T2.FEE_AMOUNT                                                                         -- 기본금액
+		, T1.APP_KEY                                                                            -- 앱키
+		, T1.API_ID                                                                             -- API_ID
+		, T1.DISCOUNT_RATE                                                                      -- 할인율
+		, T4.API_TRX_CNT                                                            AS USE_CNT    -- 사용건수
+		, T2.FEE_AMOUNT * T4.API_TRX_CNT                                            AS TOTAL_COST -- 총금액
+		, CASE WHEN T4.API_TRX_CNT <![CDATA[ <= ]]> T2.MINIMUM_USE_NUMBER
+		    THEN TRUNCATE(T2.MINIMUM_CHARGES * (1 - T1.DISCOUNT_RATE / 100), 0)
+		    ELSE TRUNCATE((T2.MINIMUM_CHARGES + ((T4.API_TRX_CNT - T2.MINIMUM_USE_NUMBER) * T2.FEE_AMOUNT)) * (1 - T1.DISCOUNT_RATE / 100), 0)
+			END AS FINAL_COST -- 최종요금
+		, T2.MINIMUM_USE_NUMBER
+		, T2.MINIMUM_CHARGES
+		, IF(T2.MINIMUM_USE_NUMBER >= T4.API_TRX_CNT, '최소청구금액 적용', '')       AS COMMENT    -- 비고
+		FROM PORTAL_CHARGE_DISCOUNT_RATE T1
+		,PORTAL_API_INFO T2
+		,PORTAL_APP_INFO T3
+		,PORTAL_STATS_MONTH_INFO T4
+		WHERE T1.USE_FL = 'Y'
+		AND T1.API_ID = T2.API_ID
+		AND T1.APP_KEY = T3.APP_KEY
+		AND T1.APP_KEY = T4.APP_KEY AND T1.API_ID = T4.API_ID
+		  <if test='searchUserKey != null and searchUserKey != ""'>
+		     AND T3.USER_KEY = #{searchUserKey}
+		  </if>
+		  <if test='searchHfnCd != null and searchHfnCd != ""'>
+		     AND T4.HFN_CD = #{searchHfnCd}
+		  </if>
+		  <if test='stDt != null and stDt != ""'>
+			 AND DATE_FORMAT(concat( T4.YEAR, T4.MONTH,'01'), '%Y-%m')  <![CDATA[ >= ]]> #{stDt}
+		  </if>
+		  <if test='enDt != null and enDt != ""'>
+			 AND DATE_FORMAT(concat( T4.YEAR, T4.MONTH,'01'), '%Y-%m')  <![CDATA[ <= ]]> #{enDt}
+		  </if>
+		  <if test='appKey != null and appKey != ""'>
+		  	 AND T1.APP_KEY = #{appKey}
+		  </if>
+		GROUP BY T1.APP_KEY, T1.API_ID
+		<include refid="paging"></include>
+	</select>
+
+	<!-- api과금집계 -->
+	<select id="getApiChargeTotCnt" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="String">
+		SELECT COUNT(T1.API_ID) AS TOT_CNT
+		FROM (
+		SELECT T1.API_ID
+		FROM PORTAL_CHARGE_DISCOUNT_RATE T1
+		,PORTAL_API_INFO T2
+		,PORTAL_APP_INFO T3
+		,PORTAL_STATS_MONTH_INFO T4
+		WHERE T1.USE_FL = 'Y'
+		AND T1.API_ID = T2.API_ID
+		AND T1.APP_KEY = T3.APP_KEY
+		AND T1.APP_KEY = T4.APP_KEY AND T1.API_ID = T4.API_ID
+		<if test='searchUserKey != null and searchUserKey != ""'>
+			AND T3.USER_KEY = #{searchUserKey}
+		</if>
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+			AND T4.HFN_CD = #{searchHfnCd}
+		</if>
+		<if test='stDt != null and stDt != ""'>
+			AND DATE_FORMAT(concat( T4.YEAR, T4.MONTH,'01'), '%Y-%m')  <![CDATA[ >= ]]> #{stDt}
+		</if>
+		<if test='enDt != null and enDt != ""'>
+			AND DATE_FORMAT(concat( T4.YEAR, T4.MONTH,'01'), '%Y-%m')  <![CDATA[ <= ]]> #{enDt}
+		</if>
+		GROUP BY T1.APP_KEY, T1.API_ID
+		) T1
+	</select>
+
+	<!-- API과금집계할인율 다건조회 -->
+	<select id="getApiDetailList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest" resultType="requestApi">
+		SELECT DATE_FORMAT(T1.ST_DT, '%Y/%m') AS MS_DATE -- 해당월
+			 , T4.ST_DT 								 -- 시작일자
+			 , T4.EN_DT  								 -- 종료일자
+			 , T3.APP_NM                                 -- 앱명
+			 , T2.API_NM 								 -- API 명
+			 , T2.FEE_AMOUNT 							 -- 기본금액
+			 , T4.DISCOUNT_RATE 						 -- 할인율
+			 , T4.API_COUNT AS USE_CNT                   -- 사용건수
+			 , T2.FEE_AMOUNT * T4.API_COUNT AS TOTAL_COST -- 총금액
+			 , T1.API_ID
+			 , T1.APP_KEY
+			 , T4.REG_DTTM
+			 , T2.MINIMUM_CHARGES
+			 , T2.MINIMUM_USE_NUMBER
+		 FROM PORTAL_CHARGE_DISCOUNT_RATE T1,
+		 PORTAL_API_INFO T2,
+		 PORTAL_APP_INFO T3,
+		(
+			SELECT *
+			FROM (
+				SELECT SUM(IF(DATE_FORMAT(T2.REG_DTTM, '%Y/%m/%d') BETWEEN
+				       IF(DATE_FORMAT(T1.ST_DT, '%Y/%m') <![CDATA[ < ]]> #{msDate}, CONCAT(#{msDate}, '/01'), T1.ST_DT)
+				       AND IF(DATE_FORMAT(T1.EN_DT, '%Y/%m') <![CDATA[ > ]]> #{msDate}, LAST_DAY(CONCAT(#{msDate}, '/01')), T1.EN_DT), 1, 0)) AS API_COUNT
+					  ,DATE_FORMAT(IF(DATE_FORMAT(T1.ST_DT, '%Y/%m') <![CDATA[ < ]]> #{msDate}, CONCAT(#{msDate}, '/01'), T1.ST_DT), '%m/%d') AS ST_DT
+					  ,DATE_FORMAT(IF(DATE_FORMAT(T1.EN_DT, '%Y/%m') <![CDATA[ > ]]> #{msDate}, LAST_DAY(CONCAT(#{msDate}, '/01')), T1.EN_DT), '%m/%d') AS EN_DT
+                      ,T1.DISCOUNT_RATE
+					  ,T2.*
+				FROM PORTAL_CHARGE_DISCOUNT_RATE T1
+				LEFT JOIN PORTAL_API_LOG_HIS T2 ON T1.APP_KEY = T2.APP_KEY AND T1.API_ID = T2.API_ID
+				WHERE T1.USE_FL = 'Y'
+				  AND T1.APP_KEY = #{appKey}
+				  AND T1.API_ID = #{apiId}
+				  AND DATE_FORMAT(IF(DATE_FORMAT(T1.ST_DT, '%Y/%m') <![CDATA[ < ]]> #{msDate}, CONCAT(#{msDate}, '/01'), T1.ST_DT), '%Y/%m') = #{msDate}
+				  AND DATE_FORMAT(IF(DATE_FORMAT(T1.EN_DT, '%Y/%m') <![CDATA[ > ]]> #{msDate}, LAST_DAY(CONCAT(#{msDate}, '/01')), T1.EN_DT), '%Y/%m') = #{msDate}
+			    GROUP BY ST_DT
+			) A
+		) T4
+		WHERE T1.API_ID = T2.API_ID
+		  AND T1.APP_KEY = T3.APP_KEY
+		  AND T1.APP_KEY = T4.APP_KEY
+		  AND T1.API_ID = T4.API_ID
+		  AND T1.USE_FL = 'Y'
+		  AND T1.APP_KEY = #{appKey}
+		  AND T1.API_ID = #{apiId}
+		  AND DATE_FORMAT(T1.ST_DT, '%Y/%m') = #{msDate}
+	    GROUP BY T4.ST_DT
+	</select>
+
+	<select id="selectApiPolicy" parameterType="com.hanafn.openapi.portal.views.dto.ApiPolicyRequest" resultType="apiPolicy">
+		SELECT T1.API_ID, T1.API_NM, T1.API_URL, T2.*
+		FROM
+		(
+		(SELECT * FROM PORTAL_API_INFO WHERE API_ID = #{apiId}) T1
+		LEFT OUTER JOIN
+		(SELECT * FROM PORTAL_API_POLICY WHERE API_ID = #{apiId}) T2
+		ON T1.API_ID = T2.API_ID
+		)
+	</select>
+
+	<insert id="insertApiPolicy" parameterType="com.hanafn.openapi.portal.views.dto.ApiPolicyRequest">
+		INSERT INTO PORTAL_API_POLICY (
+			API_ID
+			,MAX_USER
+			,MAX_SIZE
+			,LTD_TIME_FM
+			,LTD_TIME
+			,LTD_CNT
+			,TX_RESTR_START
+			,TX_RESTR_END
+			,TX_RESTR_WEEK
+			,REG_USER
+			,REG_DTTM
+		) VALUES (
+			#{apiId}
+			,#{maxUser}
+			,#{maxSize}
+			,#{ltdTimeFm}
+			,#{ltdTime}
+			,#{ltdCnt}
+			,#{txRestrStart}
+			,#{txRestrEnd}
+			,#{txRestrWeek}
+			,#{regUser}
+			,NOW()
+		)
+	</insert>
+
+	<update id="updateApiPolicy" parameterType="com.hanafn.openapi.portal.views.dto.ApiPolicyRequest">
+		UPDATE
+			PORTAL_API_POLICY
+		SET
+			  MAX_USER = #{maxUser}
+			, MAX_SIZE = #{maxSize}
+			, LTD_TIME_FM = #{ltdTimeFm}
+			, LTD_TIME = #{ltdTime}
+			, LTD_CNT = #{ltdCnt}
+			, TX_RESTR_START = #{txRestrStart}
+			, TX_RESTR_END = #{txRestrEnd}
+			, TX_RESTR_WEEK = #{txRestrWeek}
+			, MOD_USER = #{modUser}
+			, MOD_DTTM = NOW()
+		WHERE
+			API_ID = #{apiId}
+	</update>
+
+	<select id="selectApiEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest" resultType="echo">
+		SELECT T3.SEQ, T1.API_ID, T1.API_NM, T1.API_URL, T2.SEARCH_KEY, T3.SEARCH_VALUE, T3.API_ECHO
+		FROM PORTAL_API_INFO T1, PORTAL_API_SEARCHKEY T2, PORTAL_API_ECHO T3
+		WHERE T1.API_ID = T2.API_ID
+			AND T2.API_ID = T3.API_ID
+			AND T1.API_STAT_CD = 'OK'
+			AND T3.STAT_CD = 'OK'
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+			AND T1.HFN_CD = #{searchHfnCd}
+		</if>
+		<if test='searchNm != null and searchNm != ""'>
+			AND (
+				(T2.API_ID LIKE CONCAT('%', #{searchNm}, '%'))
+				OR
+				(T2.API_NM LIKE CONCAT('%', #{searchNm}, '%'))
+				OR
+				(T2.API_URL LIKE CONCAT('%', #{searchNm}, '%'))
+			)
+		</if>
+		ORDER BY T2.SEARCH_KEY, T3.SEARCH_VALUE ASC
+	</select>
+
+	<select id="selectApisForEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$ApisRequest" resultType="api">
+		SELECT API_ID, API_NM
+		FROM PORTAL_API_INFO
+		WHERE API_STAT_CD = 'OK'
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+			AND  HFN_CD = #{searchHfnCd}
+		</if>
+		<if test='searchNm != null and searchNm != ""'>
+			AND (
+				(API_ID LIKE CONCAT('%', #{searchNm}, '%'))
+				OR
+				(API_NM LIKE CONCAT('%', #{searchNm}, '%'))
+			)
+		</if>
+	</select>
+
+	<insert id="regApiEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_API_ECHO	(
+											SEQ,
+											API_ID,
+											API_URL,
+											SEARCH_VALUE,
+											STAT_CD,
+											API_ECHO,
+											REG_USER,
+											REG_DTTM
+										) VALUES (
+											#{seq},
+											#{apiId},
+											#{apiUrl},
+											#{searchValue},
+											'OK',
+											#{apiEcho},
+											#{regUser},
+											NOW()
+										)
+	</insert>
+
+	<update id="updateApiEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest">
+		UPDATE PORTAL_API_ECHO
+		SET SEARCH_VALUE = #{searchValue},
+			API_ECHO = #{apiEcho},
+			MOD_USER = #{modUser},
+			MOD_DTTM = NOW()
+		WHERE API_ID = #{apiId}
+			AND STAT_CD = 'OK'
+			AND SEQ = #{seq}
+	</update>
+
+	<select id="getApiInfo" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest" resultType="api">
+		SELECT API_NM, GW_TYPE, HFN_CD, API_SVC, API_VER, API_URI
+		FROM PORTAL_API_INFO
+		WHERE API_ID = #{apiId}
+			AND API_STAT_CD = 'OK'
+		LIMIT 1
+	</select>
+
+	<select id="checkApiEchoDup" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_API_ECHO
+		WHERE API_ID = #{apiId}
+			AND STAT_CD = 'OK'
+			AND SEARCH_VALUE = #{searchValue}
+	</select>
+
+	<select id="detailApiEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest" resultType="echo">
+		SELECT T3.SEQ, T1.API_ID, T1.API_NM, T1.API_URL, T2.SEARCH_KEY, T3.SEARCH_VALUE, T3.API_ECHO, T3.REG_USER, T3.REG_DTTM, T3.MOD_USER, T3.MOD_DTTM
+		FROM PORTAL_API_INFO T1, PORTAL_API_SEARCHKEY T2, PORTAL_API_ECHO T3
+		WHERE T1.API_ID = T2.API_ID
+			AND T2.API_ID = T3.API_ID
+			AND T1.API_STAT_CD = 'OK'
+			AND T3.STAT_CD = 'OK'
+			AND T3.SEQ = #{seq}
+	</select>
+
+    <select id="apiEchos" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest" resultType="echo">
+        SELECT *
+        FROM PORTAL_API_ECHO
+        WHERE STAT_CD = 'OK'
+        AND API_ID = #{apiId}
+    </select>
+
+	<update id="deleteApiEcho" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegEchoRequest">
+		UPDATE PORTAL_API_ECHO
+		SET STAT_CD = 'DEL',
+			MOD_USER = #{modUser},
+			MOD_DTTM = NOW()
+		WHERE STAT_CD = 'OK'
+			AND API_ID = #{apiId}
+			AND SEARCH_VALUE = #{searchValue}
+	</update>
+
+	<update id="deleteApiEchoAll" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegSearchKeyRequest">
+		UPDATE PORTAL_API_ECHO
+		SET STAT_CD = 'DEL',
+		MOD_USER = #{modUser},
+		MOD_DTTM = NOW()
+		WHERE STAT_CD = 'OK'
+		AND API_ID = #{apiId}
+	</update>
+
+	<insert id="regApiSearchKey" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegSearchKeyRequest">
+		INSERT INTO PORTAL_API_SEARCHKEY 	(
+												API_ID,
+												SEARCH_KEY,
+												REG_USER,
+												REG_DTTM
+											) VALUES (
+												#{apiId},
+												#{searchKey},
+												#{regUser},
+												NOW()
+											)
+	</insert>
+
+	<update id="updateApiSearchKey" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegSearchKeyRequest">
+		UPDATE PORTAL_API_SEARCHKEY
+		SET SEARCH_KEY = #{searchKey},
+		MOD_USER = #{modUser},
+		MOD_DTTM = #{modDttm}
+		WHERE API_ID = #{apiId}
+	</update>
+
+	<select id="getApiSearchKey" parameterType="com.hanafn.openapi.portal.views.dto.EchoRequest$RegSearchKeyRequest" resultType="echo">
+		SELECT *
+		FROM PORTAL_API_SEARCHKEY
+		WHERE API_ID = #{apiId}
+	</select>
+
+</mapper>

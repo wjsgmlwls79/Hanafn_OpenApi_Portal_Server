@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.security.repository.SignupRepository">
+
+	<insert id="insertUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UseorgSignUpRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="string">
+			SELECT CONCAT('USEORG', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 4) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			  FROM (SELECT IFNULL(MAX(USER_KEY), CONCAT('USEORG', '00000')) AS MAX_CD
+					   FROM PORTAL_USEORG_INFO
+					  WHERE USER_KEY LIKE CONCAT('USEORG', '%')
+				  ) A
+		</selectKey>
+		INSERT INTO PORTAL_USEORG_INFO (
+											USER_KEY
+											,ENTR_CD
+											,USEORG_GB
+											,USEORG_NM
+											,USEORG_USER_NM
+											,USEORG_USER_EMAIL
+											,USEORG_USER_TEL
+											,USEORG_TEL
+											,USEORG_ID
+											,USEORG_PWD
+											,HBN_USE_YN
+											,HNW_USE_YN
+											,HLF_USE_YN
+											,HCP_USE_YN
+											,HCD_USE_YN
+											,HSV_USE_YN
+											,HMB_USE_YN
+											,USEORG_STAT_CD
+											,BRN
+											,USEORG_CTNT
+											,REG_DTTM
+											,REG_USER
+											,ENC_KEY
+											,USEORG_UPLOAD
+										)
+										VALUES
+										(
+											#{userKey}
+											,#{entrCd}
+											,#{useorgGb}
+											,#{useorgNm}
+											,#{useorgUserNm}
+											,#{useorgUserEmail}
+											,#{useorgUserTel}
+											,#{useorgTel}
+											,#{useorgId}
+											,#{useorgPwd}
+											,#{hbnUseYn}
+											,#{hnwUseYn}
+											,#{hlfUseYn}
+											,#{hcpUseYn}
+											,#{hcdUseYn}
+											,#{hsvUseYn}
+											,#{hmbUseYn}
+											,'WAIT'
+											,REPLACE(#{brn}, '-','')
+											,#{useorgCtnt}
+											,NOW()
+											,#{regId}
+											,#{encKey}
+											,#{useorgUpload}
+										)
+	</insert>
+
+	<select id="selectUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UseorgSignUpRequest" resultType="useorg">
+			SELECT *
+				, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+						 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+								(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+				, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+						 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+								(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+			FROM  PORTAL_USEORG_INFO T1
+			WHERE USEORG_ID = #{useorgId}
+	</select>
+
+	<insert id="insertSignupUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="string">
+			SELECT CONCAT('USEORG', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 4) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			FROM (SELECT IFNULL(MAX(USER_KEY), CONCAT('USEORG', '00000')) AS MAX_CD
+			FROM PORTAL_USEORG_INFO
+			WHERE USER_KEY LIKE CONCAT('USEORG', '%')
+			) A
+		</selectKey>
+		INSERT INTO PORTAL_USEORG_INFO (
+												USER_KEY
+												,USEORG_NM
+												,USEORG_STAT_CD
+												,BRN
+												,ENTR_CD
+												,USEORG_CTNT
+												,REG_DTTM
+												,REG_USER
+											)
+									VALUES (
+												#{userKey}
+												,#{useorgNm}
+												,'WAIT'
+												,REPLACE(#{brn}, '-','')
+												,#{entrCd}
+												,#{useorgCtnt}
+												,NOW()
+												,#{regUserId}
+											)
+	</insert>
+
+	<select id="useorgEmailDupCheckWhenSignUp" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USEORG_INFO T1
+		WHERE T1.USEORG_USER_EMAIL = #{userEmail}
+	</select>
+
+	<update id="updateSignupUseorgRegId" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest">
+		UPDATE PORTAL_USEORG_INFO
+		    SET REG_USER = #{id}
+		 WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="insertUserSignup" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_USER_INFO (
+											USER_KEY
+											,USER_ID
+											,USER_NM
+											,USER_PWD
+											,USER_STAT_CD
+											,USER_APLV_STAT
+											,TMP_PWD_YN
+											,USER_TEL
+											,ENTR_CD
+											,REG_DTTM
+										)
+								VALUES (
+											#{userKey}
+											,#{userId}
+											,#{username}
+											,#{password}
+											,'WAIT'
+											,'WAIT'
+											,'N'
+											,#{userTel}
+											,#{entrCd}
+											,NOW()
+										)
+	</insert>
+
+	<select id="selectUserForUserIdAndWait" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest" resultType="user">
+		SELECT USER_KEY
+		  FROM PORTAL_USER_INFO
+		 WHERE USER_ID = #{username}
+		   AND USER_STAT_CD = 'WAIT'
+		   AND USER_APLV_STAT = 'WAIT'
+	</select>
+
+	<insert id="insertUserRoleForUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest">
+		INSERT INTO PORTAL_USER_ROLE_INFO (
+												USER_KEY
+												,ROLE_CD
+											)
+									VALUES (
+												#{userKey}
+												,2
+											)
+	</insert>
+
+	<!---					개인 사용자 회원가입				-->
+	<select id="selectUserUserId" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest" resultType="String">
+		SELECT USER_KEY
+		FROM PORTAL_USER_INFO
+		WHERE USER_KEY = #{userKey}
+<!--		AND '탈퇴날짜' - '한달' < NOW()-->
+	</select>
+
+	<insert id="insertUser" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest">
+		INSERT INTO PORTAL_USER_INFO (
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+			USER_KEY
+			,USER_ID
+			,USER_NM
+			,USER_PWD
+			,USER_GB
+			,USER_EMAIL
+			,USER_COMPANY
+			,USER_JOB_NM
+			,USER_STAT_CD
+			,USER_TEL
+			,PORTAL_TOS_YN
+			,PRIVACY_TOS_YN
+			,REG_DTTM
+		    ,REG_USER
+			)
+			VALUES (
+			#{userKey}
+			,#{userId}
+			,#{userNm}
+			,#{userPwd}
+			,#{userGb}
+			,#{userEmail}
+			,#{userCompany}
+			,#{userJobNm}
+			,#{userStatCd}
+			,#{userTel}
+			,#{portalTosYn}
+			,#{privacyTosYn}
+			,NOW()
+			,#{userId}
+		)
+	</insert>
+	<insert id="insertUserRoleForUser" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest">
+		INSERT INTO PORTAL_USER_ROLE_INFO (
+			USER_KEY
+			,ROLE_CD
+		)
+		VALUES (
+			#{userKey}
+			,'6'
+		)
+	</insert>
+	<insert id="insertLogin" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest">
+		INSERT INTO PORTAL_USER_LOGIN (
+			USER_KEY
+			,USER_ID
+			,USER_PWD
+			,USER_TYPE
+			,USER_STAT_CD
+			,PWD_CHANGE_DT
+		)
+		VALUES (
+			#{userKey}
+			,#{userId}
+			,#{userPwd}
+			,'USER'
+			,'APLV'
+			,CURRENT_DATE()
+		)
+	</insert>
+
+	<insert id="insertPwHisUser" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		 	   SEQ
+			  ,USER_KEY
+			  ,USER_ID
+			  ,USER_PWD
+			  ,PWD_CHANGE_DT
+		)
+		VALUES (
+		        #{seq}
+			   ,#{userKey}
+			   ,#{userId}
+			   ,#{userPwd}
+			   ,CURRENT_DATE()
+			   )
+	</insert>
+
+	<insert id="insertSndCertMgntForSelfAuth" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_SND_CERT_MGNT
+		</selectKey>
+		INSERT INTO PORTAL_SND_CERT_MGNT
+		(
+		SEQ
+		, USER_KEY
+		, SEND_CD
+		, SEND_NO
+		, REG_DTTM
+		)
+		VALUES
+		(
+		#{seq}
+		,#{userKey}
+		,#{sendCd}
+		,#{sendNo}
+		,NOW()
+		)
+	</insert>
+
+	<insert id="insertLoginUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UseorgSignUpRequest">
+		INSERT INTO PORTAL_USER_LOGIN (
+			USER_KEY
+			,USER_ID
+			,USER_PWD
+			,USER_TYPE
+			,USER_STAT_CD
+			,PWD_CHANGE_DT
+		)
+		VALUES (
+			#{userKey}
+			,#{useorgId}
+			,#{useorgPwd}
+			,'ORGM'
+			,'APLV'
+			,CURRENT_DATE()
+		)
+	</insert>
+
+	<insert id="insertPwHisUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UseorgSignUpRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		 SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		 #{seq}
+		,#{userKey}
+		,#{useorgId}
+		,#{useorgPwd}
+		,CURRENT_DATE()
+		)
+	</insert>
+
+	<insert id="insertRoleUseorg" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UseorgSignUpRequest">
+
+		INSERT INTO PORTAL_USER_ROLE_INFO (
+											USER_KEY
+											, ROLE_CD
+										)
+										VALUES (
+												#{userKey}
+												, '4'
+										)
+	</insert>
+
+	<select id="checkDropUserOrNot" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO
+		WHERE USER_NM = #{userNm}
+		AND USER_EMAIL = #{userEmail}
+		AND USER_COMPANY = #{userCompany}
+		AND USER_JOB_NM = #{userJobNm}
+		AND USER_TEL = #{userTel}
+	</select>
+
+	<select id="selectUser" parameterType="com.hanafn.openapi.portal.security.dto.SignUpRequest$UserSingnUpRequest" resultType="String">
+		SELECT USER_KEY
+		FROM PORTAL_USER_INFO
+		WHERE USER_Id = #{userId}
+	</select>
+</mapper>

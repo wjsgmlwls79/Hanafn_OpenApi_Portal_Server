@@ -1,0 +1,3672 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.SettingRepository">
+	<sql id="paging">
+		LIMIT #{pageOffset} , #{pageSize}
+	</sql>
+
+	<select id="getUserKeyByEntrCd" parameterType="String" resultType="String">
+		SELECT USER_KEY
+		FROM PORTAL_USEORG_INFO
+		WHERE ENTR_CD = #{values}
+	</select>
+	<!-- 조회 조건 -->
+	<sql id="whereUseorg">
+		<where>
+			AND USEORG_STAT_CD NOT IN ('WAIT', 'REJECT')
+			<if test='searchNm != null and searchNm != ""'>
+				AND (ENTR_CD LIKE CONCAT('%', #{searchNm}, '%')
+				OR USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+				OR BRN LIKE CONCAT('%', #{searchNm}, '%')
+				)
+			</if>
+			<if test='searchUseorgStatCd != null and searchUseorgStatCd != ""'>
+				AND USEORG_STAT_CD = #{searchUseorgStatCd}
+			</if>
+			<choose>
+				<when test='searchHfnCd == 01'>
+					AND HBN_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 02'>
+					AND HNW_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 04'>
+					AND HLF_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 05'>
+					AND HCP_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 12'>
+					AND HCD_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 14'>
+					AND HSV_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == 99'>
+					AND HMB_USE_YN = 'Y'
+				</when>
+				<otherwise>
+					AND USER_KEY = NULL
+				</otherwise>
+			</choose>
+
+
+		</where>
+	</sql>
+
+	<sql id="whereUseorgHfn">
+		<where>
+			AND USEORG_STAT_CD NOT IN ('WAIT', 'REJECT')
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND (ENTR_CD LIKE CONCAT('%', #{searchNm}, '%')
+				OR USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+				OR BRN LIKE CONCAT('%', #{searchNm}, '%')
+				)
+			</if>
+			<if test='searchUseorgStatCd != null and searchUseorgStatCd != ""'>
+				AND USEORG_STAT_CD = #{searchUseorgStatCd}
+			</if>
+			<choose>
+				<when test='searchHfnCd == "01"'>
+					AND HBN_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "02"'>
+					AND HNW_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "04"'>
+					AND HLF_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "05"'>
+					AND HCP_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "12"'>
+					AND HCD_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "14"'>
+					AND HSV_USE_YN = 'Y'
+				</when>
+				<when test='searchHfnCd == "99"'>
+					AND HMB_USE_YN = 'Y'
+				</when>
+				<!--				7개 관계사외 예외처리-->
+				<otherwise>
+					AND USEORG_STAT_CD = 'EXCEPTION'
+				</otherwise>
+			</choose>
+		</where>
+	</sql>
+
+	<!-- 이용기관 -->
+
+	<select id="selectUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDetailRequest" resultType="useorg">
+		SELECT *,
+			   COUNT(T2.USER_KEY) AS APP_COUNT,
+			   COUNT(T3.USER_KEY) AS DEVEL_COUNT,
+			   (IF(T1.HCP_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HBN_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HNW_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HLF_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HCD_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HSV_USE_YN = 'Y', 1, 0)
+			   +IF(T1.HMB_USE_YN = 'Y', 1, 0)) AS TOTAL_COUNT
+		FROM PORTAL_USEORG_INFO T1
+		LEFT JOIN PORTAL_APP_INFO T2 ON T1.USER_KEY = T2.USER_KEY AND T2.APP_STAT_CD = 'OK'
+		LEFT JOIN PORTAL_USER_INFO T3 ON T1.USER_KEY = T3.ENTR_CD
+		WHERE T1.USER_KEY = #{userKey}
+	</select>
+
+	<select id="countUseorgList" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="Integer">
+		SELECT COUNT(T1.USER_KEY)
+		FROM PORTAL_USEORG_INFO T1, PORTAL_HFN_INFO T2
+		WHERE	T1.USEORG_STAT_CD NOT IN ('WAIT', 'REJECT')
+		AND T2.HFN_STS_CD = 'Y'
+		<if test='searchNm != null and searchNm != ""'>
+			AND (T1.ENTR_CD LIKE CONCAT('%', #{searchNm}, '%')
+			OR T1.USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+			OR T1.BRN LIKE CONCAT('%', #{searchNm}, '%')
+			)
+		</if>
+		<if test='searchUseorgStatCd != null and searchUseorgStatCd != ""'>
+			AND T1.USEORG_STAT_CD = #{searchUseorgStatCd}
+		</if>
+		AND T2.HFN_CD = #{searchHfnCd}
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+			AND
+			( (T1.HBN_USE_YN = 'Y' AND (T2.HFN_CD = '01'))
+			OR (T1.HNW_USE_YN = 'Y' AND (T2.HFN_CD = '02'))
+			OR (T1.HLF_USE_YN = 'Y' AND (T2.HFN_CD = '04'))
+			OR (T1.HCP_USE_YN = 'Y' AND (T2.HFN_CD = '05'))
+			OR (T1.HCD_USE_YN = 'Y' AND (T2.HFN_CD = '12'))
+			OR (T1.HSV_USE_YN = 'Y' AND (T2.HFN_CD = '14'))
+			OR (T1.HMB_USE_YN = 'Y' AND (T2.HFN_CD = '99'))
+			)
+		</if>
+	</select>
+
+	<select id="selectUseorgList" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="useorg">
+
+		SELECT T1.USER_KEY, T1.USEORG_NM, T1.USEORG_STAT_CD, T1.BRN, T1.ENTR_CD, T1.USEORG_CTNT, T1.ERROR_MSG, T1.REG_DTTM
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , T1.MOD_DTTM
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T4.HFN_CD, T4.HFN_NM
+		FROM
+		(
+		(SELECT * FROM PORTAL_USEORG_INFO) T1
+
+		INNER JOIN
+		(
+		SELECT DISTINCT T2.USER_KEY, T3.HFN_CD, T3.HFN_NM, T3.HFN_STS_CD
+		FROM (SELECT USER_KEY, HFN_CD FROM PORTAL_API_INFO) T2
+		INNER JOIN
+		(SELECT DISTINCT HFN_CD, HFN_NM, HFN_STS_CD FROM PORTAL_HFN_INFO) T3
+		ON T2.HFN_CD = T3.HFN_CD
+		) T4
+
+		ON T1.USER_KEY = T4.USER_KEY
+		)
+		WHERE T1.USEORG_STAT_CD NOT IN ('WAIT', 'REJECT')
+		AND T4.HFN_STS_CD = 'Y'
+		<if test='searchNm != null and searchNm != ""'>
+			AND (T1.ENTR_CD LIKE CONCAT('%', #{searchNm}, '%')
+			OR T1.USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+			OR T1.BRN LIKE CONCAT('%', #{searchNm}, '%')
+			)
+		</if>
+		<if test='searchUseorgStatCd != null and searchUseorgStatCd != ""'>
+			AND T1.USEORG_STAT_CD = #{searchUseorgStatCd}
+		</if>
+		<choose>
+			<when test='searchHfnCd == 01'>
+				AND T1.HBN_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 02'>
+				AND T1.HNW_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 04'>
+				AND T1.HLF_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 05'>
+				AND T1.HCP_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 12'>
+				AND T1.HCD_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 14'>
+				AND T1.HSV_USE_YN = 'Y'
+			</when>
+			<when test='searchHfnCd == 99'>
+				AND T1.HMB_USE_YN = 'Y'
+			</when>
+			<otherwise>
+				AND T1.USER_KEY = NULL
+			</otherwise>
+		</choose>
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="selectUseorgListHfn" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="useorg">
+		SELECT T1.USER_KEY, T1.USEORG_NM, T1.USEORG_USER_NM, T1.USEORG_STAT_CD, T1.BRN, T1.ENTR_CD, T1.USEORG_CTNT, T1.ERROR_MSG, T1.REG_DTTM
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , T1.MOD_DTTM
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T2.HFN_CD
+            <if test='searchHfnCd != null and searchHfnCd != ""'>
+                , T2.HFN_NM
+            </if>
+            <if test='searchHfnCd == null or searchHfnCd == ""'>
+                , CONCAT(
+                    IF (T1.HBN_USE_YN IN ('Y', 'D', 'W'), ',KEB하나은행',  '')
+                    ,IF (T1.HNW_USE_YN IN ('Y', 'D', 'W'), ',하나금융투자',  '')
+                    ,IF (T1.HLF_USE_YN IN ('Y', 'D', 'W'), ',하나생명',  '')
+                    ,IF (T1.HCP_USE_YN IN ('Y', 'D', 'W'), ',하나캐피탈',  '')
+                    ,IF (T1.HCD_USE_YN IN ('Y', 'D', 'W'), ',하나카드',  '')
+                    ,IF (T1.HSV_USE_YN IN ('Y', 'D', 'W'), ',하나저축은행',  '')
+                    ,IF (T1.HMB_USE_YN IN ('Y', 'D', 'W'), ',하나멤버스',  '')
+                ) AS HFN_NM
+            </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "01"'>
+		     , T1.HBN_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "02"'>
+			 , T1.HNW_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "04"'>
+			 , T1.HLF_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "05"'>
+			 , T1.HCP_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "12"'>
+			 , T1.HCD_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "14"'>
+			 , T1.HSV_USE_YN AS APPROVAL_STATUS
+			 </if>
+			 <if test='searchHfnCd != null and searchHfnCd == "99"'>
+			 , T1.HMB_USE_YN AS APPROVAL_STATUS
+			 </if>
+		FROM PORTAL_USEORG_INFO T1, PORTAL_HFN_INFO T2
+		WHERE 1 = 1
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+		AND T1.USEORG_STAT_CD NOT IN ('REJECT')
+		</if>
+		<if test='searchHfnCd == null or searchHfnCd == ""'>
+		AND T1.USEORG_STAT_CD NOT IN ('REJECT')
+		</if>
+		AND T2.HFN_STS_CD = 'Y'
+		<if test='searchNm != null and searchNm != ""'>
+			AND T1.USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+		</if>
+		<if test='searchUseorgStatCd != null and searchUseorgStatCd != ""'>
+			AND T1.USEORG_STAT_CD = #{searchUseorgStatCd}
+		</if>
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+		AND T2.HFN_CD = #{searchHfnCd}
+		</if>
+		<if test='searchHfnCd != null and searchHfnCd != ""'>
+			AND
+			( (T1.HBN_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '01'))
+			OR (T1.HNW_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '02'))
+			OR (T1.HLF_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '04'))
+			OR (T1.HCP_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '05'))
+			OR (T1.HCD_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '12'))
+			OR (T1.HSV_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '14'))
+			OR (T1.HMB_USE_YN IN ('Y', 'D', 'W') AND (T2.HFN_CD = '99'))
+			)
+		</if>
+		GROUP BY T1.USER_KEY
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="useorgDupCheckForBrn" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USEORG_INFO
+		WHERE BRN = REPLACE(#{brn}, '-','')
+		AND USEORG_STAT_CD != 'REJECT'
+	</select>
+
+	<update id="useorgHfnAplv" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$HfnAplvRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET MOD_DTTM = NOW()
+		<if test='hfnCd == 01'>
+			,HBN_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 02'>
+			,HNW_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 04'>
+			,HLF_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 05'>
+			,HCP_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 12'>
+			,HCD_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 14'>
+			,HSV_USE_YN = 'W'
+		</if>
+		<if test='hfnCd == 99'>
+			,HMB_USE_YN = 'W'
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="useorgHfnAplvReject" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$HfnAplvRejectRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET MOD_DTTM = NOW()
+		<if test='hfnCd == 01'>
+			,HBN_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 02'>
+			,HNW_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 04'>
+			,HLF_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 05'>
+			,HCP_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 12'>
+			,HCD_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 14'>
+			,HSV_USE_YN = 'N'
+		</if>
+		<if test='hfnCd == 99'>
+			,HMB_USE_YN = 'N'
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="useorgHfnDelReject" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$HfnAplvRejectRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET MOD_DTTM = NOW()
+		<if test='hfnCd == 01'>
+			,HBN_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 02'>
+			,HNW_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 04'>
+			,HLF_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 05'>
+			,HCP_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 12'>
+			,HCD_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 14'>
+			,HSV_USE_YN = 'Y'
+		</if>
+		<if test='hfnCd == 99'>
+			,HMB_USE_YN = 'Y'
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="insertUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgRegistRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="string">
+			SELECT CONCAT('USEORG', LPAD(CAST(CAST(SUBSTRING(A.MAX_CD, LENGTH(A.MAX_CD) - 4) AS UNSIGNED) + 1 AS CHAR), 5, '0')) AS NEW_CD
+			FROM (SELECT IFNULL(MAX(USER_KEY), CONCAT('USEORG', '00000')) AS MAX_CD
+			FROM PORTAL_USEORG_INFO
+			WHERE USER_KEY LIKE CONCAT('USEORG', '%')
+			) A
+		</selectKey>
+
+		INSERT INTO PORTAL_USEORG_INFO (
+		USER_KEY
+		,USEORG_NM
+		,USEORG_STAT_CD
+		,BRN
+		,ENTR_CD
+		,USEORG_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{userKey}
+		,#{useorgNm}
+		,'OK'
+		,REPLACE(#{brn}, '-','')
+		,#{entrCd}
+		,#{useorgCtnt}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<update id="updateUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgUpdateRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_NM = #{useorgNm}
+		<if test='newUseorgPwd != "" and newUseorgPwd != null'>
+			, USEORG_PWD = #{newUseorgPwd}
+		</if>
+		<if test='useorgStatCd != "" and useorgStatCd != null'>
+			, USEORG_STAT_CD = #{useorgStatCd}
+		</if>
+		, USEORG_CTNT = #{useorgCtnt}
+		, USEORG_TEL = #{useorgTel}
+		, USEORG_GB = #{useorgGb}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		, USEORG_USER_NM = #{useorgUserNm}
+		, USEORG_USER_TEL = #{useorgUserTel}
+		, USEORG_USER_EMAIL = #{useorgUserEmail}
+		, USEORG_BANK = #{useorgBank}
+		, USEORG_BANK_NO = #{useorgBankNo}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="insertPwHisUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		 #{seq}
+		,#{userKey}
+		,#{userId}
+		,#{newUseorgPwd}
+		,CURRENT_DATE()
+		)
+	</insert>
+
+	<update id="updateLoginUser" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgUpdateRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateUseorgStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgStatCdChangeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_STAT_CD = #{useorgStatCd}
+		, ERROR_MSG = #{errorMsg}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateUseorgStatCdAfterAplv" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgStatCdChangeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET ERROR_MSG = #{errorMsg}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		<if test='hbnUseYn == "W"'>
+			, HBN_USE_YN = 'Y'
+		    , HBN_REG_DTTM = NOW()
+		</if>
+		<if test='hnwUseYn == "W"'>
+			, HNW_USE_YN = 'Y'
+		    , HNW_REG_DTTM = NOW()
+		</if>
+		<if test='hlfUseYn == "W"'>
+			, HLF_USE_YN = 'Y'
+		    , HLF_REG_DTTM = NOW()
+		</if>
+		<if test='hcpUseYn == "W"'>
+			, HCP_USE_YN = 'Y'
+		    , HCP_REG_DTTM = NOW()
+		</if>
+		<if test='hcdUseYn == "W"'>
+			, HCD_USE_YN = 'Y'
+		    , HCD_REG_DTTM = NOW()
+		</if>
+		<if test='hsvUseYn == "W"'>
+			, HSV_USE_YN = 'Y'
+		    , HSV_REG_DTTM = NOW()
+		</if>
+		<if test='hmbUseYn == "W"'>
+			, HMB_USE_YN = 'Y'
+		    , HMB_REG_DTTM = NOW()
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateUseorgStatCdAfterDelAplv" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgStatCdChangeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_STAT_CD = #{useorgStatCd}
+		, ERROR_MSG = #{errorMsg}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		<if test='hbnUseYn == "Y"'>
+			, HBN_USE_YN = 'N'
+		    , HBN_END_DTTM = NOW()
+		</if>
+		<if test='hnwUseYn == "Y"'>
+			, HNW_USE_YN = 'N'
+			, HNW_END_DTTM = NOW()
+		</if>
+		<if test='hlfUseYn == "Y"'>
+			, HLF_USE_YN = 'N'
+			, HLF_END_DTTM = NOW()
+		</if>
+		<if test='hcpUseYn == "Y"'>
+			, HCP_USE_YN = 'N'
+			, HCP_END_DTTM = NOW()
+		</if>
+		<if test='hcdUseYn == "Y"'>
+			, HCD_USE_YN = 'N'
+			, HCD_END_DTTM = NOW()
+		</if>
+		<if test='hsvUseYn == "Y"'>
+			, HSV_USE_YN = 'N'
+			, HSV_END_DTTM = NOW()
+		</if>
+		<if test='hmbUseYn == "Y"'>
+			, HMB_USE_YN = 'N'
+			, HMB_END_DTTM = NOW()
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateUseorgStatCdAfterExpireAplv" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgStatCdChangeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_STAT_CD = #{useorgStatCd}
+		, ERROR_MSG = #{errorMsg}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		<if test='hbnUseYn == "Y"'>
+			, HBN_USE_YN = 'D'
+		</if>
+		<if test='hnwUseYn == "Y"'>
+			, HNW_USE_YN = 'D'
+		</if>
+		<if test='hlfUseYn == "Y"'>
+			, HLF_USE_YN = 'D'
+		</if>
+		<if test='hcpUseYn == "Y"'>
+			, HCP_USE_YN = 'D'
+		</if>
+		<if test='hcdUseYn == "Y"'>
+			, HCD_USE_YN = 'D'
+		</if>
+		<if test='hsvUseYn == "Y"'>
+			, HSV_USE_YN = 'D'
+		</if>
+		<if test='hmbUseYn == "Y"'>
+			, HMB_USE_YN = 'D'
+		</if>
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<select id="selectUseorgAllList" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="useorg">
+		SELECT USER_KEY
+		, USEORG_NM
+		FROM PORTAL_USEORG_INFO
+		WHERE USEORG_STAT_CD = 'OK'
+		ORDER BY REG_DTTM DESC
+	</select>
+
+	<select id="selectUseorgAllListByHfn" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest" resultType="useorg">
+		SELECT USER_KEY
+		, USEORG_NM
+		FROM PORTAL_USEORG_INFO
+		WHERE USEORG_STAT_CD = 'OK'
+		<if test='searchHfnCd != null or searchHfnCd != ""'>
+			AND(
+			(HBN_USE_YN = 'Y' AND (#{searchHfnCd} = '01'))
+			OR (HNW_USE_YN = 'Y' AND (#{searchHfnCd} = '02'))
+			OR (HLF_USE_YN = 'Y' AND (#{searchHfnCd} = '04'))
+			OR (HCP_USE_YN = 'Y' AND (#{searchHfnCd} = '05'))
+			OR (HCD_USE_YN = 'Y' AND (#{searchHfnCd} = '12'))
+			OR (HSV_USE_YN = 'Y' AND (#{searchHfnCd} = '14'))
+			OR (HMB_USE_YN = 'Y' AND (#{searchHfnCd} = '99'))
+			)
+		</if>
+		ORDER BY REG_DTTM DESC
+	</select>
+
+	<select id="selectHfnByHfnCd" parameterType="String" resultType="hfnInfo">
+		SELECT *
+		FROM PORTAL_HFN_INFO
+		WHERE HFN_CD = #{values}
+	</select>
+
+	<select id="selectApiListByUseorgYn" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDetailRequest" resultType="api">
+		SELECT T2.*
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T2.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T2.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T2.REG_USER))) AS REG_USER
+		FROM PORTAL_API_INFO T2, PORTAL_USEORG_INFO T5
+		WHERE T5.USER_KEY = #{userKey} AND T2.API_STAT_CD = 'OK'
+		AND(
+		(T5.HBN_USE_YN = 'Y' AND (T2.HFN_CD = '01'))
+		OR (T5.HNW_USE_YN = 'Y' AND (T2.HFN_CD = '02'))
+		OR (T5.HLF_USE_YN = 'Y' AND (T2.HFN_CD = '04'))
+		OR (T5.HCP_USE_YN = 'Y' AND (T2.HFN_CD = '05'))
+		OR (T5.HCD_USE_YN = 'Y' AND (T2.HFN_CD = '12'))
+		OR (T5.HSV_USE_YN = 'Y' AND (T2.HFN_CD = '14'))
+		OR (T5.HMB_USE_YN = 'Y' AND (T2.HFN_CD = '99'))
+		)
+	</select>
+
+	<select id="selectHfnListByUseorgYn" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDetailRequest" resultType="hfnInfo">
+		SELECT T2.*
+		FROM PORTAL_USEORG_INFO T1, PORTAL_HFN_INFO T2
+		WHERE
+		T1.USER_KEY = #{userKey} AND T2.HFN_STS_CD = 'Y'
+		AND(
+		(T1.HBN_USE_YN = 'Y' AND (T2.HFN_CD = '01'))
+		OR (T1.HNW_USE_YN = 'Y' AND (T2.HFN_CD = '02'))
+		OR (T1.HLF_USE_YN = 'Y' AND (T2.HFN_CD = '04'))
+		OR (T1.HCP_USE_YN = 'Y' AND (T2.HFN_CD = '05'))
+		OR (T1.HCD_USE_YN = 'Y' AND (T2.HFN_CD = '12'))
+		OR (T1.HSV_USE_YN = 'Y' AND (T2.HFN_CD = '14'))
+		OR (T1.HMB_USE_YN = 'Y' AND (T2.HFN_CD = '99'))
+		)
+	</select>
+
+	<!-- 이용기관 가입 시 중복방지토큰 생성용-->
+	<insert id="insertDateRowIfNotExists">
+		INSERT INTO PORTAL_USEORG_SEQ(REG_DTTM,SEQ_NO)
+		SELECT DATE_FORMAT(NOW(), '%y%m%d'), 1 FROM DUAL
+		WHERE NOT EXISTS
+		(
+		SELECT REG_DTTM,SEQ_NO
+		FROM PORTAL_USEORG_SEQ
+		WHERE REG_DTTM = DATE_FORMAT(NOW(), '%y%m%d')
+		)
+	</insert>
+	<update id="updateDateSeqForNoDup">
+		UPDATE PORTAL_USEORG_SEQ
+		SET SEQ_NO = SEQ_NO+1
+		WHERE REG_DTTM = DATE_FORMAT(NOW(), '%y%m%d')
+	</update>
+	<select id="getDateSeq" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgRegistRequest" resultType="Integer">
+		SELECT SEQ_NO
+		FROM PORTAL_USEORG_SEQ
+		WHERE REG_DTTM = DATE_FORMAT(NOW(), '%y%m%d')
+	</select>
+
+	<update id="updateUseorgUpload" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgUploadRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_UPLOAD = #{useorgUpload}
+		WHERE USER_KEY = #{userKey}
+	</update>
+	<!--
+		***************** 관계사 사용자 ************************
+	-->
+
+	<sql id="whereHfnUser">
+		<where>
+			AND T1.USER_KEY != #{userKey}
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T1.HFN_CD= #{searchHfnCd}
+			</if>
+			<if test='searchRoleCd != null and searchRoleCd != ""'>
+				AND T2.ROLE_CD = #{searchRoleCd}
+			</if>
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T1.HFN_ID LIKE CONCAT('%', #{searchNm}, '%')
+				OR T1.USER_NM LIKE CONCAT('%', #{searchNm}, '%')
+				)
+			</if>
+		</where>
+		AND T1.USER_KEY = T2.USER_KEY
+		AND T2.ROLE_CD = T3.ROLE_CD
+	</sql>
+
+	<insert id="insertHfnUser" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserRegistRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="String">
+			SELECT CONCAT((SELECT CD_ENG FROM PORTAL_COMM_CODE WHERE CD_ID = #{hfnCd}), IFNULL(LPAD(MAX(REPLACE(USER_KEY, (SELECT CD_ENG FROM PORTAL_COMM_CODE WHERE CD_ID = #{hfnCd}), '')) + 1, 4, '0'), '0001'))
+			FROM PORTAL_HFN_USER_INFO
+			WHERE USER_KEY LIKE CONCAT((SELECT CD_ENG FROM PORTAL_COMM_CODE WHERE CD_ID = #{hfnCd}), '%')
+		</selectKey>
+		INSERT INTO PORTAL_HFN_USER_INFO (
+		USER_KEY
+		,HFN_CD
+		,HFN_ID
+		,USER_NM
+		,USER_PWD
+		<if test='signUserYn != null and signUserYn != ""'>
+			,SIGN_USER_YN
+		</if>
+		,DEPT_NM
+		,JOB_NM
+		,USER_STAT_CD
+		,ACCESS_CD
+		<if test='signLevel != null and signLevel != ""'>
+			,SIGN_LEVEL
+		</if>
+		,TMP_PWD_YN
+		,TMP_PWD
+		,USER_TEL
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{userKey}
+		,#{hfnCd}
+		,#{hfnId}
+		,#{userNm}
+		,#{userPwd}
+		<if test='signUserYn != null and signUserYn != ""'>
+			,#{signUserYn}
+		</if>
+		,#{deptNm}
+		,#{jobNm}
+		,'Y'
+		,#{accessCd}
+		<if test='signLevel != null and signLevel != ""'>
+			,#{signLevel}
+		</if>
+		,'Y'
+		,#{tmpPwd}
+		,#{userTel}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<select id="hfnIdDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_HFN_USER_INFO T1
+		WHERE T1.HFN_ID = #{hfnId}
+		AND T1.HFN_CD = #{hfnCd}
+	</select>
+
+	<select id="selectHfnLineById" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnLineRequest" resultType="hfnline">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_HFN_LINE T1
+		WHERE USER_KEY = #{userKey}
+	</select>
+
+	<insert id="insertHfnLine" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserRegistRequest">
+		INSERT INTO PORTAL_HFN_LINE (
+		USER_KEY
+		,HFN_CD
+		,HFN_ID
+		,USER_NM
+		,SIGN_LEVEL
+		,SIGN_USER_YN
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{userKey}
+		,#{hfnCd}
+		,#{hfnId}
+		,#{userNm}
+		,#{signLevel}
+		,#{signUserYn}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<insert id="insertHfnUserRole" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserRegistRequest">
+		INSERT INTO PORTAL_USER_ROLE_INFO (
+		USER_KEY
+		,ROLE_CD
+		)
+		VALUES (
+		#{userKey}
+		,#{roleCd}
+		)
+	</insert>
+
+	<update id="updateHfnUserRole" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		UPDATE PORTAL_USER_ROLE_INFO
+		SET ROLE_CD = #{roleCd}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<select id="selectHfnUserForId" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserRegistRequest" resultType="hfnuser">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_HFN_USER_INFO T1
+		INNER JOIN PORTAL_USER_ROLE_INFO T2
+		ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.HFN_ID = #{hfnId}
+		AND T1.USER_STAT_CD = 'Y'
+		AND T1.HFN_CD = #{hfnCd}
+	</select>
+
+	<select id="countHfnUserList" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="Integer">
+		SELECT COUNT(T1.USER_KEY)
+		FROM PORTAL_HFN_USER_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_ROLE_INFO T3
+		<include refid="whereHfnUser"/>
+	</select>
+
+	<select id="selectHfnUserList" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="hfnUser">
+		SELECT T1.USER_KEY
+		, T1.HFN_ID
+		, T1.HFN_CD
+		, T1.USER_NM
+		, T1.JOB_NM
+		, T1.DEPT_NM
+		, T1.USER_STAT_CD
+		, T1.ACCESS_CD
+		, T1.SIGN_USER_YN
+		, T1.SIGN_LEVEL
+		, T1.TMP_PWD_YN
+		, T1.USER_TEL
+		, T1.REG_DTTM
+		, T1.MOD_DTTM
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, T2.ROLE_CD
+		FROM PORTAL_HFN_USER_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_ROLE_INFO T3
+		<include refid="whereHfnUser"/>
+		ORDER BY REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<update id="updateHfnUserStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserStatCdChangeRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_STAT_CD = #{userStatCd}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="hfnUserPwdUpdate" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserPwdUpdateRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, TMP_PWD_YN = 'N'
+		, TMP_PWD = ''
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		, PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="hfnUserPwdHisUpdate" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserPwdUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		 #{seq}
+		,#{userKey}
+		,(
+		 	SELECT HFN_ID
+		    WHERE PORTAL_HFN_USER_INFO
+		    WHERE USER_KEY = #{userKey}
+		 )
+		,#{userPwd}
+		,CURRENT_DATE()
+		)
+	</insert>
+
+	<update id="hfnUserPwdAndTosUpdate" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserPwdAndTosUpdateRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, TMP_PWD_YN = 'N'
+		, TMP_PWD = ''
+		, PORTAL_TOS_YN = #{portalTosYn}
+		, PRIVACY_TOS_YN = #{privacyTosYn}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{userKey}
+		, PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<!--
+		************************사용자************************
+	-->
+
+	<!-- 조회 조건 -->
+	<sql id="whereUser">
+		<where>
+			AND T1.USER_KEY != #{userKey}
+            <if test='searchStDt != null and searchStDt != ""'>
+                AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+            </if>
+            <if test='searchEnDt != null and searchEnDt != ""'>
+                AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+            </if>
+			<if test='searchEntrCd != null and searchEntrCd != ""'>
+				AND T1.ENTR_CD = #{searchEntrCd}
+			</if>
+			<if test='searchRoleCd != null and searchRoleCd != ""'>
+				AND T2.ROLE_CD = #{searchRoleCd}
+			</if>
+			<if test='searchUserType == 1'>
+				AND T2.ROLE_CD IN ('1', '4')
+			</if>
+			<if test='searchUserType == 2'>
+				AND T2.ROLE_CD IN ('2', '3')
+			</if>
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T1.USER_ID LIKE CONCAT('%', #{searchNm}, '%')
+				OR T1.USER_NM LIKE CONCAT('%', #{searchNm}, '%')
+				)
+			</if>
+		</where>
+		AND T1.USER_KEY = T2.USER_KEY
+		AND T2.ROLE_CD = T3.ROLE_CD
+	</sql>
+
+	<select id="selectUser" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="user">
+		SELECT T1.USER_KEY
+		, T1.USER_ID
+		, T1.USER_NM
+		, T1.USER_STAT_CD
+		, T1.USER_GB
+		, T1.USER_COMPANY
+		, T1.USER_JOB_NM
+		, T1.TMP_PWD_YN
+		, T1.TMP_PWD
+		, T1.USER_TEL
+		, T1.TEL_AUTH_NO
+		, T1.USER_EMAIL
+		, T1.ENTR_CD
+		, T1.REG_DTTM
+		, T1.MOD_DTTM
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+						(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+						(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, T2.ROLE_CD
+		, (SELECT USEORG_NM FROM PORTAL_USEORG_INFO T3 WHERE T1.ENTR_CD = T3.USER_KEY ) AS USEORG_NM
+		, T3.USER_TYPE
+		FROM PORTAL_USER_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_USER_LOGIN T3
+		WHERE T1.USER_KEY = #{userKey}
+		AND T1.USER_KEY = T2.USER_KEY
+		AND T1.USER_KEY = T3.USER_KEY
+	</select>
+
+	<select id="selectUseorgData" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDetailRequest" resultType="useorg">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+			 , T2.ROLE_CD
+			 , (SELECT USEORG_NM FROM PORTAL_USEORG_INFO T3 WHERE T1.ENTR_CD = T3.ENTR_CD ) AS USEORG_NM
+			 , T3.USER_TYPE
+		FROM PORTAL_USEORG_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_USER_LOGIN T3
+		WHERE T1.USER_KEY = #{userKey}
+		  AND T1.USER_KEY = T2.USER_KEY
+		  AND T1.USER_KEY = T3.USER_KEY
+	</select>
+
+	<select id="selectUserWithDraw" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="userWithdraw">
+		SELECT *
+		FROM PORTAL_USER_WITHDRAW
+		WHERE USER_KEY = #{userKey}
+	</select>
+
+	<select id="selectSecedeUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest" resultType="useorg">
+		SELECT IF(ISNULL(HBN_END_DTTM), HBN_USE_YN, 'D') AS HBN_USE_YN
+			  ,IF(ISNULL(HNW_END_DTTM), HNW_USE_YN, 'D') AS HNW_USE_YN
+			  ,IF(ISNULL(HLF_END_DTTM), HLF_USE_YN, 'D') AS HLF_USE_YN
+			  ,IF(ISNULL(HCP_END_DTTM), HCP_USE_YN, 'D') AS HCP_USE_YN
+			  ,IF(ISNULL(HCD_END_DTTM), HCD_USE_YN, 'D') AS HCD_USE_YN
+			  ,IF(ISNULL(HSV_END_DTTM), HSV_USE_YN, 'D') AS HSV_USE_YN
+			  ,IF(ISNULL(HMB_END_DTTM), HMB_USE_YN, 'D') AS HMB_USE_YN
+		FROM PORTAL_USEORG_INFO
+		WHERE USER_KEY = #{userKey}
+	</select>
+
+	<select id="countUserList" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="Integer">
+		SELECT COUNT(T1.USER_KEY)
+		FROM PORTAL_USER_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_ROLE_INFO T3
+		<include refid="whereUser"/>
+	</select>
+
+	<select id="selectUserList" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="user">
+		SELECT T1.USER_KEY
+		, T1.USER_ID
+		, T1.USER_NM
+		, T1.USER_STAT_CD
+		, T1.USER_TEL
+		, T1.ENTR_CD
+	    , DATE_FORMAT(T1.REG_DTTM, '%Y-%m-%d') AS JOIN_DATE
+		, T1.REG_DTTM
+		, T1.MOD_DTTM
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+			IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+			(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, T2.ROLE_CD
+        , T1.USER_EMAIL
+		FROM PORTAL_USER_INFO T1, PORTAL_USER_ROLE_INFO T2, PORTAL_ROLE_INFO T3
+		<include refid="whereUser"/>
+		ORDER BY REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<!-- USER_APLV_STAT 관련 INSERT가 적용되지 않는 문제 발견 0708 : DEFAULT APLV로 임시해결 -->
+	<insert id="insertUser" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserRegistRequest">
+		<selectKey keyProperty="userKey" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_USER_INFO (
+		USER_KEY
+		,USER_ID
+		,USER_NM
+		,USER_PWD
+		,USER_STAT_CD
+		,USER_APLV_STAT
+		,TMP_PWD_YN
+		,TMP_PWD
+		,USER_TEL
+		<if test='entrCd != null and entrCd != ""'>
+			,ENTR_CD
+		</if>
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{userKey}
+		,#{userId}
+		,#{userNm}
+		,#{userPwd}
+		,'OK'
+		,'APLV'
+		,'Y'
+		,#{tmpPwd}
+		,#{userTel}
+		<if test='entrCd != null and entrCd != ""'>
+			,#{entrCd}
+		</if>
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<select id="selectUserForId" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserRegistRequest" resultType="user">
+		SELECT USER_KEY
+		, USER_ID
+		, USER_NM
+		, USER_TEL
+		, USER_EMAIL
+		FROM PORTAL_USER_INFO
+		WHERE USER_KEY = #{userKey}
+	</select>
+
+	<!-- 		AND USER_APLV_STAT = 'APLV' 삭제 -->
+	<select id="selectUserForUserId" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserRegistRequest" resultType="user">
+		SELECT USER_KEY
+		, USER_ID
+		, USER_NM
+		, USER_TEL
+		FROM PORTAL_USER_INFO
+		WHERE USER_ID = #{userId}
+		AND USER_STAT_CD = 'OK'
+	</select>
+
+	<insert id="insertUserRole" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserRegistRequest">
+		INSERT INTO PORTAL_USER_ROLE_INFO (
+		USER_KEY
+		,ROLE_CD
+		)
+		VALUES (
+		#{userKey}
+		,#{roleCd}
+		)
+	</insert>
+
+	<select id="selectUserPwd" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest" resultType="user">
+		SELECT T1.USER_PWD
+		FROM PORTAL_USER_INFO T1
+		WHERE T1.USER_KEY = #{userKey}
+	</select>
+
+	<select id="selectHfnUserPwd" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDetailRequest" resultType="user">
+		SELECT T1.USER_PWD
+		FROM PORTAL_HFN_USER_INFO T1
+		WHERE T1.USER_KEY = #{userKey}
+        AND T1.HFN_CD = #{hfnCd}
+	</select>
+
+	<update id="updateUser" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_NM = #{userNm}
+		<if test='newUserPwd != null and newUserPwd != ""'>
+			, USER_PWD = #{newUserPwd}
+		</if>
+		, USER_STAT_CD = #{userStatCd}
+		, USER_TEL = #{userTel}
+        , USER_EMAIL = #{userEmail}
+		, ENTR_CD = #{entrCd}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		, USER_GB = #{userGb}
+		, USER_COMPANY = #{userCompany}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id ="updateUserLoginType" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UpdateTypeRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_TYPE = #{userType}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<select id="userIdDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_LOGIN T1
+		WHERE T1.USER_ID = #{userId}
+	</select>
+
+	<select id="userIdDupCheckInUserTable" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+		WHERE T1.USER_ID = #{userId}
+	</select>
+
+	<select id="userEmailDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+		WHERE T1.USER_EMAIL = #{userEmail}
+	</select>
+
+    <select id="useorgEmailDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+        SELECT COUNT(*)
+        FROM PORTAL_USEORG_INFO T1
+        WHERE T1.USEORG_USER_EMAIL = #{userEmail}
+          AND T1.USEORG_ID != #{userId}
+    </select>
+
+	<select id="userEmailDupCheckUpdate" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+		WHERE T1.USER_EMAIL = #{userEmail}
+		  AND T1.USER_ID != #{userId}
+	</select>
+
+	<select id="useorgIdDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgIdDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USEORG_INFO T1
+		WHERE T1.USEORG_ID = #{useorgId}
+	</select>
+
+	<select id="tmpHbkIdDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM TMP_HBK_IDCHECK T1
+		WHERE T1.USEORG_ID = #{useorgId}
+	</select>
+
+	<select id="selectSignUserList" resultType="user">
+		SELECT T2.USER_KEY
+		, T2.USER_ID
+		, T2.USER_NM
+		, T2.USER_TEL
+		FROM PORTAL_USER_ROLE_INFO T1, PORTAL_USER_INFO T2
+		WHERE T1.ROLE_CD = '1'
+		AND T2.USER_STAT_CD = 'OK'
+		AND T1.USER_KEY = T2.USER_KEY
+	</select>
+
+	<select id="selectHfnSignUserList" resultType="hfnuser">
+		SELECT USER_NM
+		FROM PORTAL_HFN_LINE
+		WHERE SIGN_LEVEL > 10
+	</select>
+
+	<update id="updateUserStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserStatCdChangeRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_STAT_CD = #{userStatCd}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="userPwdUpdate" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, TMP_PWD_YN = 'N'
+		, TMP_PWD = ''
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{userKey}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="userPwdAndTosUpdate" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdAndTosUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, TMP_PWD_YN = 'N'
+		, TMP_PWD = ''
+		, PORTAL_TOS_YN = #{portalTosYn}
+		, PRIVACY_TOS_YN = #{privacyTosYn}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{userKey}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="userTepPwdUpdate" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserTmpPwdUpdateRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, TMP_PWD_YN = 'Y'
+		, TMP_PWD = #{tmpPwd}
+		, LOGIN_LOCK = 'N'
+		, LOGIN_FAIL_CNT = 0
+		, REG_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="secedeUser" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserSecedeRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_STAT_CD = 'DEL'
+		, MOD_DTTM = NOW()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="secedeUserLogin" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserSecedeRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_STAT_CD = 'DEL'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="secedeUserWithDraw" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserSecedeRequest">
+		INSERT INTO PORTAL_USER_WITHDRAW
+		(
+			USER_KEY
+		  , REASON_GB
+		  , REASON_DETAIL
+		  , REG_DTTM
+		)
+		VALUES
+		(
+			#{userKey}
+		   ,#{reasonGb}
+		   ,#{reasonDetail}
+		   ,NOW()
+		)
+	</insert>
+
+	<select id="selectUserWithDrawReason" parameterType="String" resultType="com.hanafn.openapi.portal.views.dto.UserRequest$UserSecedeRequest">
+		SELECT REASON_GB, REASON_DETAIL
+		FROM PORTAL_USER_WITHDRAW
+		WHERE USER_KEY = #{values}
+	</select>
+
+	<insert id="secedeUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest">
+		<selectKey keyProperty="aplvSeqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APLV_INFO
+		(
+		APLV_SEQ_NO
+		,APLV_REQ_CD
+		,APLV_STAT_CD
+		,APLV_DIV_CD
+		,APLV_REQ_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES
+		(
+		#{aplvSeqNo}
+		,#{userKey}
+		,'WAIT'
+		,'USEORGEXP'
+		,#{reasonDetail}
+		,NOW()
+		,#{userId}
+		)
+	</insert>
+
+	<insert id="secedeUseorgHis" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest">
+		INSERT INTO PORTAL_APLV_HIS (
+		SEQ_NO
+		,APLV_SEQ_NO
+		,APLV_STAT_CD
+		,HFN_CD
+		,REG_DTTM
+		,REG_USER
+		,PROC_USER
+		)
+		VALUES (
+		DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		,#{aplvSeqNo}
+		,'WAIT'
+		,#{hfnCd}
+		,NOW()
+		,#{regUserId}
+		,#{procId}
+		)
+	</insert>
+
+	<update id="secedeUseorgInfo" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_STAT_CD = 'DEL'
+		   ,HBN_USE_YN = #{hbnUseYn}
+		   ,HNW_USE_YN = #{hnwUseYn}
+		   ,HLF_USE_YN = #{hlfUseYn}
+		   ,HCP_USE_YN = #{hcpUseYn}
+		   ,HCD_USE_YN = #{hcdUseYn}
+		   ,HSV_USE_YN = #{hsvUseYn}
+		   ,HMB_USE_YN = #{hmbUseYn}
+		   ,MOD_DTTM = NOW()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="secedeUseorgLogin" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_STAT_CD = 'DEL'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="secedeUseorgWithDraw" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgSecedeRequest">
+		INSERT INTO PORTAL_USER_WITHDRAW
+		(
+			USER_KEY
+		  , REASON_GB
+		  , REASON_DETAIL
+		  , REG_DTTM
+		)
+		VALUES
+		(
+			#{userKey}
+		   ,#{reasonGb}
+		   ,#{reasonDetail}
+		   ,NOW()
+		)
+	</insert>
+
+	<insert id="insertUserWithdraw" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserSecedeRequest">
+		INSERT INTO PORTAL_APLV_INFO (
+		USER_KEY
+		,REASON_GB
+		,REASON_DETAIL
+		,REG_DTTM
+		,APPROVAL_DTTM
+		)
+		VALUES (
+		#{userKey}
+		,#{reasonGb}
+		,#{reasonDetail}
+		,NOW()
+		)
+
+	</insert>
+
+
+	<!--
+		************************승인************************
+	-->
+
+	<sql id="whereAplv">
+		<where>
+			T1.APLV_SEQ_NO = T2.APLV_SEQ_NO
+			AND T2.HFN_CD = T3.HFN_CD
+			AND T2.SEQ_NO = (
+				SELECT MAX(SEQ_NO)
+				FROM PORTAL_APLV_HIS
+				WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+				<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND HFN_CD = #{searchHfnCd}
+				</if>
+			)
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T1.APLV_REQ_CTNT LIKE CONCAT('%', #{searchNm}, '%')
+				OR T1.REG_USER IN (
+					SELECT USER_KEY FROM PORTAL_HFN_USER_INFO WHERE USER_NM LIKE CONCAT('%', #{searchNm}, '%')
+					UNION ALL
+					SELECT USER_KEY FROM PORTAL_USEORG_INFO WHERE USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+					UNION ALL
+					SELECT USEORG_ID FROM PORTAL_USEORG_INFO WHERE USEORG_NM LIKE CONCAT('%', #{searchNm}, '%')
+				))
+			</if>
+			<if test='searchAplvDivCd != null and searchAplvDivCd != ""'>
+				AND T1.APLV_DIV_CD = #{searchAplvDivCd}
+			</if>
+			<if test='searchAplvStatCd != null and searchAplvStatCd != ""'>
+				AND T1.APLV_STAT_CD = #{searchAplvStatCd}
+			</if>
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T2.HFN_CD = #{searchHfnCd}
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectAplv" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvDetailRequest" resultType="aplv">
+		SELECT T1.APLV_SEQ_NO,
+			   T1.APLV_REQ_CD,
+			   T1.APLV_STAT_CD,
+			   T1.APLV_DIV_CD,
+			   T1.APLV_REQ_CTNT,
+			   T1.REG_DTTM,
+			   IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER),
+									(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER)))) AS REG_USER,
+			   IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER) IS NOT NULL, 'Y', 'N') AS USER_NM_ENCRYPTED,
+			   T1.REG_USER AS REG_ID,
+			   T1.PROC_DTTM,
+			   IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.PROC_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.PROC_USER),
+							 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.PROC_USER),
+							     (SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.PROC_USER)))) AS PROC_USER,
+			   IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.PROC_USER) IS NOT NULL, 'Y', 'N') AS PROC_USER_NM_ENCRYPTED,
+			   T3.USEORG_USER_EMAIL,
+			   IFNULL((SELECT PROC_USER
+					   FROM PORTAL_APLV_HIS
+					   WHERE SEQ_NO = (
+						   SELECT MIN(SEQ_NO)
+						   FROM PORTAL_APLV_HIS
+						   WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+							 AND APLV_STAT_CD = 'WAIT'
+							 AND HFN_CD = #{hfnCd}
+					   )
+						 AND APLV_SEQ_NO = T1.APLV_SEQ_NO), '') AS PROC_ID
+		FROM PORTAL_APLV_INFO T1
+				 INNER JOIN PORTAL_APLV_HIS T2 ON T1.APLV_SEQ_NO = T2.APLV_SEQ_NO
+				 LEFT JOIN PORTAL_USEORG_INFO T3 ON T1.REG_USER = T3.USER_KEY
+		WHERE T1.APLV_SEQ_NO = #{aplvSeqNo}
+		  AND T2.SEQ_NO = (
+			SELECT MAX(SEQ_NO)
+			FROM PORTAL_APLV_HIS
+			WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+			  AND HFN_CD = #{hfnCd}
+		)
+	</select>
+
+	<select id="selectAplvDetail" parameterType="String" resultType="aplv">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		FROM PORTAL_APLV_INFO T1
+		WHERE APLV_SEQ_NO = #{aplvSeqNo}
+	</select>
+
+	<select id="getUseorgPw" parameterType="String" resultType="userPwHis">
+		SELECT USER_PWD
+		FROM PORTAL_USER_PW_HIS
+		WHERE USER_KEY = #{userKey}
+	</select>
+
+	<select id="getUserIdPw" parameterType="String" resultType="userPwHis">
+		SELECT USER_PWD
+		FROM PORTAL_USER_PW_HIS
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<select id="getHfnIdPw" parameterType="String" resultType="userPwHis">
+		SELECT USER_PWD
+		FROM PORTAL_USER_PW_HIS
+		WHERE USER_ID = #{hfnId}
+	</select>
+
+	<select id="selectAplvHis" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvDetailRequest" resultType="aplvHis">
+		SELECT
+			T1.SEQ_NO
+			,T1.APLV_SEQ_NO
+			,T1.APLV_STAT_CD
+            ,T1.HFN_CD
+            ,T1.REJECT_CTNT
+            ,T1.REG_DTTM
+            ,IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.PROC_USER),
+					IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.PROC_USER),
+						   (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.PROC_USER))) AS PROC_USER
+            ,T1.PROC_DTTM
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, T1.REG_USER AS REG_ID
+			, T2.USER_KEY
+			, T2.HFN_CD
+			, T2.HFN_ID
+			, T2.USER_NM
+			, T2.SIGN_USER_YN
+			, T2.SIGN_LEVEL
+			, T2.ALT_YN
+			, T2.REG_USER
+			, T2.REG_DTTM
+			, T2.MOD_USER
+			, T2.MOD_DTTM
+		FROM	PORTAL_APLV_HIS T1, PORTAL_HFN_LINE T2
+		WHERE	T1.PROC_USER = T2.USER_KEY
+		AND		T1.APLV_SEQ_NO = #{aplvSeqNo}
+		AND		T2.HFN_CD = #{hfnCd}
+		ORDER BY SEQ_NO DESC
+	</select>
+
+	<select id="countAplvList" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest" resultType="Integer">
+		SELECT COUNT(DISTINCT T1.APLV_SEQ_NO)
+		FROM PORTAL_APLV_INFO T1, PORTAL_APLV_HIS T2, PORTAL_HFN_INFO T3
+		<include refid="whereAplv"/>
+	</select>
+
+	<select id="selectAplvList" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest" resultType="aplv">
+		SELECT DISTINCT T1.APLV_SEQ_NO, T1.APLV_STAT_CD, T1.REG_DTTM
+		              , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+							IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER),
+							(SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER)))) AS REG_USER
+					  , IF((SELECT USER_NM FROM PORTAL_USER_INFO WHERE USER_KEY = T1.REG_USER) IS NOT NULL, 'Y', 'N') AS USER_NM_ENCRYPTED
+		              , T1.APLV_REQ_CTNT, T1.APLV_DIV_CD, T3.HFN_CD, T3.HFN_NM, T4.USEORG_USER_EMAIL
+						,IFNULL(T4.USEORG_NM,
+						(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY =
+							(SELECT USER_KEY
+								FROM PORTAL_APP_INFO_MOD
+								WHERE APP_KEY = (SELECT APLV_REQ_CD
+													FROM PORTAL_APLV_INFO
+													WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO)))) AS USEORG_NM
+		              , IFNULL((SELECT PROC_USER
+						FROM PORTAL_APLV_HIS
+						WHERE SEQ_NO = (
+		                SELECT MIN(SEQ_NO)
+		                  FROM PORTAL_APLV_HIS
+		                  WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+		                    AND APLV_STAT_CD = 'WAIT'
+		                    <if test='searchHfnCd != null and searchHfnCd != ""'>
+							AND HFN_CD = #{searchHfnCd}
+							</if>
+						    )
+						AND APLV_SEQ_NO = T1.APLV_SEQ_NO), '') AS PROC_ID
+		FROM PORTAL_APLV_INFO T1
+		    LEFT JOIN PORTAL_USEORG_INFO T4 ON T1.APLV_REQ_CD = T4.USER_KEY
+		   , PORTAL_APLV_HIS T2, PORTAL_HFN_INFO T3
+
+		<include refid="whereAplv"/>
+		GROUP BY T2.APLV_SEQ_NO
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="selectAplvBtnYn" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvDetailRequest" resultType="String">
+		SELECT	(CASE WHEN 	(	(	SELECT DISTINCT APLV_STAT_CD
+									FROM PORTAL_APLV_HIS
+									WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+									AND APLV_SEQ_NO = #{aplvSeqNo}
+									AND PROC_USER = #{procId}
+								) = 'WAIT'
+								AND
+								(	SELECT DISTINCT SIGN_LEVEL
+									FROM PORTAL_APLV_HIS T2, PORTAL_HFN_LINE T3
+									WHERE T2.PROC_USER = T3.USER_KEY
+									AND T2.PROC_USER = #{procId}
+									AND APLV_SEQ_NO = #{aplvSeqNo}
+									AND T3.HFN_CD = #{hfnCd}
+								) = '10'
+							)
+							OR
+							(
+								(	SELECT DISTINCT APLV_STAT_CD
+									FROM PORTAL_APLV_HIS
+									WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+									AND T1.APLV_SEQ_NO = #{aplvSeqNo}
+									AND PROC_USER = #{procId}
+									) = 'WAIT'
+								AND
+								(	SELECT DISTINCT SIGN_LEVEL
+									FROM PORTAL_APLV_HIS T4, PORTAL_HFN_LINE T5
+									WHERE T4.PROC_USER = T5.USER_KEY
+									AND T4.PROC_USER = #{procId}
+									AND APLV_SEQ_NO = #{aplvSeqNo}
+									AND T5.HFN_CD = #{hfnCd}
+									) = '20'
+								AND
+								(	SELECT COUNT(SEQ_NO)
+									FROM PORTAL_APLV_HIS T6, PORTAL_HFN_LINE T7
+									WHERE T6.PROC_USER = T7.USER_KEY
+									AND T6.APLV_STAT_CD = 'WAIT'
+									AND T6.APLV_SEQ_NO = #{aplvSeqNo}
+									AND T7.HFN_CD = #{hfnCd}
+									AND T7.SIGN_LEVEL='10'
+									) = 0
+							)
+							OR
+							(
+								(	SELECT DISTINCT APLV_STAT_CD
+									FROM PORTAL_APLV_HIS
+									WHERE APLV_SEQ_NO = T1.APLV_SEQ_NO
+									AND T1.APLV_SEQ_NO = #{aplvSeqNo}
+									AND PROC_USER = #{procId}
+								) = 'WAIT'
+								AND
+								(	SELECT DISTINCT SIGN_LEVEL
+									FROM PORTAL_APLV_HIS T8, PORTAL_HFN_LINE T9
+									WHERE T8.PROC_USER = T9.USER_KEY
+									AND T8.PROC_USER = #{procId}
+									AND APLV_SEQ_NO = #{aplvSeqNo}
+									AND T9.HFN_CD = #{hfnCd}
+								) = '30'
+								AND
+								(	SELECT COUNT(SEQ_NO)
+									FROM PORTAL_APLV_HIS T10, PORTAL_HFN_LINE T11
+									WHERE T10.PROC_USER = T11.USER_KEY
+									AND T10.APLV_STAT_CD = 'WAIT'
+									AND T10.APLV_SEQ_NO = #{aplvSeqNo}
+									AND T11.HFN_CD = #{hfnCd}
+									AND T11.SIGN_LEVEL='20'
+								) = 0
+							) THEN 'Y' ELSE 'N' END
+				) AS APLV_BTN_YN
+		FROM PORTAL_APLV_INFO T1
+		WHERE T1.APLV_SEQ_NO = #{aplvSeqNo}
+	</select>
+
+	<insert id="insertAplv" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvHisRegistRequest">
+		<selectKey keyProperty="aplvSeqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APLV_INFO (
+		APLV_SEQ_NO
+		,APLV_REQ_CD
+		,APLV_STAT_CD
+		,APLV_DIV_CD
+		,APLV_REQ_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{aplvSeqNo}
+		,#{aplvReqCd}
+		,'WAIT'
+		,#{aplvDivCd}
+		,#{aplvReqCtnt}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<insert id="insertAplv2" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvHisRegistRequest">
+		<selectKey keyProperty="aplvSeqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APLV_INFO (
+		APLV_SEQ_NO
+		,APLV_REQ_CD
+		,APLV_STAT_CD
+		,APLV_DIV_CD
+		,APLV_REQ_CTNT
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES (
+		#{aplvSeqNo}
+		,#{aplvReqCd}
+		,'APPROVAL'
+		,#{aplvDivCd}
+		,#{aplvReqCtnt}
+		,NOW()
+		,#{regUserId}
+		)
+	</insert>
+
+	<select id="selectAplvForAplvReqCd" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="aplv">
+		SELECT APLV_SEQ_NO
+		FROM PORTAL_APLV_INFO
+		WHERE APLV_REQ_CD = #{aplvReqCd}
+		<if test='aplvDivCd == "USEORG"'>
+		AND APLV_STAT_CD IN ('WAIT', 'APPROVAL')
+		</if>
+		<if test='aplvDivCd != "USEORG"'>
+		AND APLV_STAT_CD IN ('WAIT')
+		</if>
+		<if test='aplvDivCd != null and aplvDivCd != ""'>
+		AND APLV_DIV_CD = #{aplvDivCd}
+		</if>
+	</select>
+
+	<select id="selectAplvForAplvReqCdForHfnAplv" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="aplv">
+		SELECT APLV_SEQ_NO
+		FROM PORTAL_APLV_INFO
+		WHERE APLV_REQ_CD = #{aplvReqCd}
+		AND APLV_STAT_CD IN ('WAIT', 'APPROVAL')
+		AND APLV_DIV_CD = #{aplvDivCd}
+		AND APLV_SEQ_NO = #{aplvSeqNo}
+	</select>
+
+	<insert id="insertAplvHis" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvHisRegistRequest">
+		INSERT INTO PORTAL_APLV_HIS (
+		SEQ_NO
+		,APLV_SEQ_NO
+		,APLV_STAT_CD
+		,HFN_CD
+		,REG_DTTM
+		,REG_USER
+		,PROC_USER
+		)
+		VALUES (
+		DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		,#{aplvSeqNo}
+		,'WAIT'
+		,#{hfnCd}
+		,NOW()
+		,#{regUserId}
+		,#{procId}
+		)
+	</insert>
+
+	<insert id="insertAplvHis2" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvHisRegistRequest">
+		INSERT INTO PORTAL_APLV_HIS (
+		SEQ_NO
+		,APLV_SEQ_NO
+		,APLV_STAT_CD
+		,HFN_CD
+		,REG_DTTM
+		,REG_USER
+		,PROC_USER
+		,PROC_DTTM
+		)
+		VALUES (
+		DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		,#{aplvSeqNo}
+		,'APPROVAL'
+		,#{hfnCd}
+		,NOW()
+		,#{regUserId}
+		,#{procId}
+		,NOW()
+		)
+	</insert>
+
+	<select id="selectAplvHisDetailInfo" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvHisDetailRequest" resultType="aplvHis">
+		SELECT *
+		FROM PORTAL_APLV_HIS
+		WHERE APLV_SEQ_NO = #{aplvSeqNo}
+		AND PROC_USER = #{procUser}
+	</select>
+
+	<select id="selectHfnCdByUserKey" parameterType="String" resultType="String">
+		SELECT HFN_CD
+		FROM PORTAL_HFN_LINE
+		WHERE USER_KEY = #{values}
+	</select>
+
+	<select id="selectAppDetailInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+
+		SELECT	T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T2.USEORG_NM, T2.USEORG_ID
+		FROM	PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2
+		WHERE	T1.APP_KEY = #{appKey}
+		AND		T1.USER_KEY = T2.USER_KEY
+	</select>
+
+	<select id="selectAppHisDetail" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+
+		SELECT	T1.*
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+			 , T2.USEORG_NM, T2.USEORG_ID
+		FROM	PORTAL_APP_INFO_HIS T1, PORTAL_USEORG_INFO T2, PORTAL_APLV_INFO T3
+		WHERE	T1.APLV_SEQ_NO = T3.APLV_SEQ_NO
+		  AND	T1.USER_KEY = T2.USER_KEY
+          AND   T1.APLV_SEQ_NO = #{aplvSeqNo}
+	</select>
+
+	<select id="selectAppDetailFromModTable" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT	T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T2.USEORG_NM
+		FROM	PORTAL_APP_INFO_MOD T1, PORTAL_USEORG_INFO T2
+		WHERE	T1.APP_KEY = #{appKey}
+		AND		T1.USER_KEY = T2.USER_KEY
+	</select>
+
+
+	<select id="aplvReqAppDetailInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT	T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USE
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		     , T2.USEORG_NM, T2.USEORG_ID
+		FROM	PORTAL_APP_INFO_MOD T1, PORTAL_USEORG_INFO T2
+		WHERE	T1.APP_KEY = #{appKey}
+		AND		T1.USER_KEY = T2.USER_KEY
+	</select>
+
+	<select id="selectAppSrcHisList" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_APP_SCR_HIS T1
+		WHERE APP_KEY = #{appKey}
+		AND APP_SCR_PROC_TGT_YN = 'N'
+		AND EXPIRE_YN = 'N'
+	</select>
+
+	<select id="selectAppApiCnt" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_APP_API_INFO
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'Y'
+
+	</select>
+
+	<select id="selectAppApiList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="api">
+		SELECT T1.*
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2
+		WHERE APP_KEY = #{appKey}
+		AND T1.API_ID = T2.API_ID
+		AND T2.USE_FL = 'Y'
+	</select>
+
+	<select id="selectAppApiDetailList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="api">
+		SELECT T1.*
+		     , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		     ,T2.USE_FL
+		  FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2
+		WHERE T2.APP_KEY = #{appKey}
+		  AND T1.API_ID = T2.API_ID
+		  AND T2.USE_FL IN ('Y','WAIT')
+	</select>
+
+	<select id="selectAppApiRejectList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="api">
+		SELECT T1.*
+			 , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			 ,T2.USE_FL
+		FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2
+		WHERE T2.APP_KEY = #{appKey}
+		  AND T1.API_ID = T2.API_ID
+		  AND T2.USE_FL IN ('N')
+		  AND T2.APLV_SEQ_NO = #{aplvSeqNo}
+	</select>
+
+	<select id="getIpList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="api">
+		SELECT CNL_KEY
+		FROM PORTAL_APP_CHANNL_INFO T1
+		WHERE APP_KEY = #{appKey}
+          AND USE_FL = #{useFl}
+		<if test='aplvSeqNo != null and aplvSeqNo != ""'>
+		  AND APLV_SEQ_NO = #{aplvSeqNo}
+		</if>
+	</select>
+
+    <select id="getRequestList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="requestApi">
+		SELECT T1.CHARGE_DISCOUNT_RATE_ID
+			  ,T1.APP_KEY
+			  ,T1.API_ID
+			  ,T1.ST_DT
+			  ,T1.EN_DT
+			  ,T1.DISCOUNT_RATE
+			  ,T1.USE_FL
+			  ,T2.FEE_AMOUNT            -- 건당 사용료
+			  ,T2.MINIMUM_USE_NUMBER    -- 최소건수
+			  ,T2.MINIMUM_CHARGES       -- 금액
+			  ,T2.API_NM
+		      ,IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+			  ,DATE_fORMAT(T1.MOD_DTTM, '%Y-%m-%d %H:%i:%s') AS MOD_DTTM
+			  ,@ROWNUM := @ROWNUM + 1 AS RNUM
+		FROM PORTAL_CHARGE_DISCOUNT_RATE T1
+		INNER JOIN PORTAL_API_INFO T2 ON T1.API_ID = T2.API_ID
+		INNER JOIN PORTAL_APP_API_INFO T3 ON T1.APP_KEY = T3.APP_KEY
+		INNER JOIN (SELECT @ROWNUM := 0) RNUMTMP
+		WHERE T1.APP_KEY = #{appKey}
+		  <if test='apiId != null and apiId != ""'>
+		  AND T1.API_ID = #{apiId}
+		  </if>
+		  <if test='useFl != null and useFl != ""'>
+		  AND T1.USE_FL = #{useFl}
+		  </if>
+		  <if test='useFl == null or useFl == ""'>
+		  AND T1.USE_FL IN ('WAIT', 'Y')
+		  </if>
+		GROUP BY T1.APP_KEY, T1.API_ID
+	 	ORDER BY T1.APP_KEY, T1.API_ID, T1.ST_DT
+    </select>
+
+
+	<select id="selectAppChannlList" parameterType="com.hanafn.openapi.portal.views.dto.ApiRequest$ApiDetailRequest" resultType="appClnInfo">
+		SELECT CNL_KEY
+		FROM PORTAL_APP_CHANNL_INFO
+		WHERE APP_KEY = #{appKey}
+		AND USE_FL = 'Y'
+	</select>
+
+	<update id="updateAplvHis" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvApprovalRequest">
+		UPDATE PORTAL_APLV_HIS
+		SET APLV_STAT_CD = #{aplvStatCd}
+		<if test='rejectCtnt != null and rejectCtnt != ""'>
+			, REJECT_CTNT = #{rejectCtnt}
+		</if>
+		, PROC_DTTM = NOW()
+		<if test='procId != null and procId != ""'>
+			, PROC_USER = #{procId}
+		</if>
+		WHERE APLV_SEQ_NO = #{aplvSeqNo}
+		AND PROC_USER = #{procId}
+	</update>
+
+	<update id="updateAplvInfo" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvApprovalRequest">
+		UPDATE PORTAL_APLV_INFO
+		SET PROC_DTTM = NOW()
+		<if test='rejectCtnt != null and rejectCtnt != ""'>
+			, REJECT_CTNT = #{rejectCtnt}
+		</if>
+		, PROC_USER = #{procId}
+		WHERE APLV_SEQ_NO = #{aplvSeqNo}
+	</update>
+
+	<update id="updateAplvStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvApprovalRequest">
+		UPDATE PORTAL_APLV_INFO
+		SET APLV_STAT_CD = #{aplvStatCd}
+		, PROC_DTTM = NOW()
+		, PROC_USER = #{procId}
+		WHERE APLV_SEQ_NO = #{aplvSeqNo}
+	</update>
+
+	<select id="countAplvRest" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvApprovalRequest" resultType="Integer">
+		SELECT	COUNT(SEQ_NO)
+		FROM	PORTAL_APLV_HIS T1, PORTAL_HFN_LINE T2
+		WHERE	T1.PROC_USER = T2.USER_KEY
+		AND		T1.APLV_SEQ_NO = #{aplvSeqNo}
+		AND		T2.HFN_CD = #{hfnCd}
+		AND		APLV_STAT_CD = 'WAIT'
+	</select>
+
+	<update id="updateUserAplv" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserIdUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_STAT_CD = 'OK'
+		, USER_APLV_STAT = 'APLV'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateAppsStatCdChange" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest">
+		UPDATE PORTAL_APP_INFO
+		SET APP_STAT_CD = #{appStatCd}
+		, APP_APLV_STAT_CD = #{appAplvStatCd}
+		, APP_CLIENT_ID = #{appClientId}
+		, APP_SCR  = #{appScr}
+		, MOD_DTTM = NOW()
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="insertAppsScrHis" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_APP_SCR_HIS (
+		SEQ_NO
+		,APP_KEY
+		,APP_CLIENT_ID
+		,APP_SCR
+		,APP_SCR_VLD_DTTM
+		,REG_DTTM
+		,REG_USER
+		)
+		VALUES	(
+		DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		,#{appKey}
+		,#{appClientId}
+		,#{appScr}
+		,#{appScrVldDttm}
+		,NOW()
+		,#{regUserId}
+		)
+	</update>
+
+	<update id="updateAppsSvcEnDt" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest">
+		UPDATE PORTAL_APP_INFO
+		SET APP_APLV_STAT_CD = #{appAplvStatCd}
+		, APP_SVC_EN_DT = #{appSvcEnDt}
+		, TERM_ETD_YN = 'N'
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppsScrHis" parameterType="com.hanafn.openapi.portal.views.dto.AppsModRequest">
+		UPDATE PORTAL_APP_SCR_HIS
+		SET APP_SCR_VLD_DTTM = #{appScrVldDttm}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		WHERE APP_KEY = #{appKey}
+		AND APP_CLIENT_ID = #{appClientId}
+		AND APP_SCR = #{appScr}
+	</update>
+
+	<update id="updateUserReject" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserIdUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_APLV_STAT = 'REJECT'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateUseorgStatCdReject" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserStatCdChangeRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET
+		  <if test='useorgStatCd != null and useorgStatCd != ""'>
+		  USEORG_STAT_CD = #{useorgStatCd},
+		  </if>
+		  MOD_DTTM = NOW()
+		, MOD_USER = #{regUserId}
+		, HBN_USE_YN = CASE WHEN #{hfnCd} = '01' THEN 'N' ELSE HBN_USE_YN END
+		, HNW_USE_YN = CASE WHEN #{hfnCd} = '02' THEN 'N' ELSE HNW_USE_YN END
+		, HLF_USE_YN = CASE WHEN #{hfnCd} = '04' THEN 'N' ELSE HLF_USE_YN END
+		, HCP_USE_YN = CASE WHEN #{hfnCd} = '05' THEN 'N' ELSE HCP_USE_YN END
+		, HCD_USE_YN = CASE WHEN #{hfnCd} = '12' THEN 'N' ELSE HCD_USE_YN END
+		, HSV_USE_YN = CASE WHEN #{hfnCd} = '14' THEN 'N' ELSE HSV_USE_YN END
+		, HMB_USE_YN = CASE WHEN #{hfnCd} = '99' THEN 'N' ELSE HMB_USE_YN END
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="updateAppsStatCdReject" parameterType="com.hanafn.openapi.portal.views.dto.AppsModRequest">
+		UPDATE PORTAL_APP_INFO
+		SET APP_APLV_STAT_CD = #{appAplvStatCd}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+	<update id="updateAppsStatCdRejectAndTermEtdYn" parameterType="com.hanafn.openapi.portal.views.dto.AppsModRequest">
+		UPDATE PORTAL_APP_INFO
+		SET APP_APLV_STAT_CD = #{appAplvStatCd}
+		, TERM_ETD_YN = #{termEtdYn}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{modUserId}
+		WHERE APP_KEY = #{appKey}
+	</update>
+
+
+	<!-- 관계사정보 -->
+	<select id="selectHfnCdList"  resultType="hfnInfo">
+		SELECT HFN_CD, HFN_NM
+		FROM PORTAL_HFN_INFO
+		WHERE HFN_STS_CD = 'Y'
+		ORDER BY HFN_CD ASC
+	</select>
+	<select id="selectHfnUser" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="hfnuser">
+		SELECT T1.USER_KEY
+		, T1.HFN_ID
+		, T1.USER_NM
+		, T1.HFN_CD
+		, T1.DEPT_NM
+		, T1.JOB_NM
+		, T1.USER_STAT_CD
+		, T1.ACCESS_CD
+		, T1.SIGN_USER_YN
+		, T1.SIGN_LEVEL
+		, T1.TMP_PWD_YN
+		, T1.TMP_PWD
+		, T1.USER_TEL
+		, T1.REG_DTTM
+		, T1.MOD_DTTM
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+						(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+						(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		, T2.ROLE_CD
+		FROM PORTAL_HFN_USER_INFO T1, PORTAL_USER_ROLE_INFO T2
+		WHERE T1.USER_KEY = #{userKey}
+		AND T1.USER_KEY = T2.USER_KEY
+	</select>
+	<select id="selectHfnAltUser" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="hfnline">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+						   (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_HFN_ALT_INFO T1
+		WHERE ALT_YN = 'Y'
+		AND HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</select>
+	<select id="selectHfnAltUsers" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="hfnline">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_HFN_LINE T1
+		WHERE HFN_CD = #{hfnCd}
+		<if test='searchText != null and searchText != ""'>
+			AND
+			(
+				USER_NM LIKE CONCAT('%', #{searchText}, '%') OR HFN_ID LIKE CONCAT('%', #{searchText}, '%')
+			)
+		</if>
+	</select>
+	<select id="selectHfnLine" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest" resultType="hfnuser">
+		SELECT USER_KEY, HFN_CD, HFN_ID
+		FROM PORTAL_HFN_LINE
+		WHERE ALT_YN = 'Y'
+		AND USER_KEY = #{userKey}
+	</select>
+	<select id="selectMyHfnMember" parameterType="com.hanafn.openapi.portal.views.dto.HfnInfoRequest" resultType="hfnuser">
+		SELECT HFN_ID, USER_NM, DEPT_NM, JOB_NM
+		FROM PORTAL_HFN_USER_INFO
+		WHERE USER_STAT_CD = 'Y'
+		AND HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</select>
+	<update id="updateHfnUser" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_NM = #{userNm}
+		<if test='newUserPwd != null and newUserPwd != ""'>
+			, USER_PWD = #{newUserPwd}
+		</if>
+		, USER_STAT_CD = #{userStatCd}
+		<if test='signUserYn != null and signUserYn != ""'>
+			, SIGN_USER_YN = #{signUserYn}
+		</if>
+		, HFN_CD = #{hfnCd}
+		, ACCESS_CD = #{accessCd}
+		, SIGN_LEVEL = #{signLevel}
+		, USER_TEL = #{userTel}
+		, DEPT_NM = #{deptNm}
+		, JOB_NM = #{jobNm}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUser}
+		WHERE USER_KEY = #{userKey}
+        AND HFN_CD = #{hfnCd}
+        AND HFN_ID = #{hfnId}
+	</update>
+	<update id="updateHfnLine" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		UPDATE PORTAL_HFN_LINE
+		SET ALT_YN = #{altYn}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUser}
+		, SIGN_USER_YN = #{signUserYn}
+		, SIGN_LEVEL = #{signLevel}
+		, USER_NM = #{userNm}
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</update>
+
+	<insert id="insertUserPwHis" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		#{seq}
+		,#{userKey}
+		,(
+		  SELECT HFN_ID
+		  FROM PORTAL_HFN_USER_INFO
+		  WHERE USER_KEY = #{userKey}
+		)
+		,#{newUserPwd}
+		,CURRENT_DATE()
+		)
+	</insert>
+
+	<insert id="insertHfnAltInfo" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		INSERT INTO PORTAL_HFN_ALT_INFO (
+		HFN_CD
+		,HFN_ID
+		,ALT_ID
+		,ALT_USER_NM
+		,ALT_YN
+		,SIGN_LEVEL
+		,ALT_ST_DATE
+		,ALT_EN_DATE
+		,REG_DTTM
+		,REG_USER
+		) VALUES (
+		#{hfnCd}
+		,#{hfnId}
+		,#{altId}
+		,#{altUserNm}
+		,#{altYn}
+		,#{signLevel}
+		,#{altStDate}
+		,#{altEnDate}
+		,NOW()
+		,#{regUser}
+		)
+	</insert>
+	<update id="updateHfnAltInfo" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		UPDATE PORTAL_HFN_ALT_INFO
+		SET ALT_YN = 'N'
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{regUser}
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+		AND ALT_ID = #{exAltId}
+		AND SIGN_LEVEL = #{signLevel}
+		AND ALT_ST_DATE = #{exAltStDate}
+		AND ALT_EN_DATE = #{exAltEnDate}
+	</update>
+	<update id="updateHfnAltInfoByHfnEdit" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserUpdateRequest">
+		UPDATE PORTAL_HFN_ALT_INFO
+		SET MOD_DTTM = NOW()
+		, MOD_USER = #{regUser}
+		<if test='signLevel != null and signLevel != ""'>
+		, SIGN_LEVEL = #{signLevel}
+		</if>
+		, ALT_USER_NM = #{userNm}
+		WHERE HFN_CD = #{hfnCd}
+		AND ALT_ID = #{hfnId}
+	</update>
+
+	<select id="selctHfnByHfnCd" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="hfnInfo">
+		SELECT *
+		FROM PORTAL_HFN_INFO
+		WHERE HFN_CD #{hfnCd}
+	</select>
+
+	<select id="selectedAppRelatedHfn" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="hfnInfo">
+		SELECT DISTINCT T1.HFN_CD, T2.HFN_NM
+		FROM PORTAL_APP_API_INFO T1, PORTAL_HFN_INFO T2
+		WHERE T1.HFN_CD = T2.HFN_CD
+		AND T1.APP_KEY = #{aplvReqCd}
+	</select>
+
+	<select id="selectedUseorgRelatedHfn" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="hfnInfo">
+		SELECT DISTINCT T2.HFN_CD
+		, T2.HFN_NM
+		FROM PORTAL_USEORG_INFO T1, PORTAL_HFN_INFO T2
+		WHERE T1.USER_KEY = #{aplvReqCd}
+		AND T2.HFN_STS_CD = 'Y'
+		AND (
+		(T1.HBN_USE_YN = 'W' AND (T2.HFN_CD = '01'))
+		OR (T1.HNW_USE_YN = 'W' AND (T2.HFN_CD = '02'))
+		OR (T1.HLF_USE_YN = 'W' AND (T2.HFN_CD = '04'))
+		OR (T1.HCP_USE_YN = 'W' AND (T2.HFN_CD = '05'))
+		OR (T1.HCD_USE_YN = 'W' AND (T2.HFN_CD = '12'))
+		OR (T1.HSV_USE_YN = 'W' AND (T2.HFN_CD = '14'))
+		OR (T1.HMB_USE_YN = 'W' AND (T2.HFN_CD = '99'))
+		)
+	</select>
+
+    <select id="selectedUseorgExpRelatedHfn" parameterType="com.hanafn.openapi.portal.views.dto.AplvRequest$AplvRegistRequest" resultType="hfnInfo">
+		SELECT DISTINCT T2.HFN_CD
+		, T2.HFN_NM
+		FROM PORTAL_USEORG_INFO T1, PORTAL_HFN_INFO T2
+		WHERE T1.USER_KEY = #{aplvReqCd}
+		AND T2.HFN_STS_CD = 'Y'
+		AND T2.HFN_CD IN ('01','02','04','05','12','14','99', '07')
+	</select>
+
+	<select id="selectHfnManager" parameterType="com.hanafn.openapi.portal.views.dto.HfnInfoRequest" resultType="hfnuser">
+		SELECT DISTINCT USER_KEY, HFN_CD, HFN_ID, USER_NM
+		FROM PORTAL_HFN_LINE
+		WHERE SIGN_USER_YN = 'Y'
+		AND SIGN_LEVEL = '10'
+		AND HFN_CD = #{hfnCd}
+	</select>
+
+	<select id="userAplvLevelInfo" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserAplvLevelRequest" resultType="hfnuser">
+		SELECT USER_KEY, HFN_CD, SIGN_USER_YN, SIGN_LEVEL, ALT_YN
+		FROM PORTAL_HFN_LINE
+		WHERE USER_KEY = #{userKey}
+		AND HFN_CD = #{hfnCd}
+	</select>
+
+	<select id="getAplvLevelList" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserAplvLevelRequest" resultType="hfnuser">
+		SELECT T1.SIGN_LEVEL
+			  ,T1.USER_NM
+			  ,T1.HFN_ID
+			  ,T2.DEPT_NM
+			  ,T2.JOB_NM
+		FROM PORTAL_HFN_LINE T1
+		INNER JOIN PORTAL_HFN_USER_INFO T2 ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.HFN_CD = #{hfnCd}
+		AND T1.SIGN_LEVEL IN ('20', '30')
+	</select>
+
+	<select id="selectHfnUserFromHfnLine" parameterType="com.hanafn.openapi.portal.views.vo.HfnUserVO" resultType="hfnuser">
+		SELECT USER_KEY, HFN_CD, HFN_ID, USER_NM, SIGN_USER_YN, SIGN_LEVEL
+		FROM PORTAL_HFN_LINE
+		WHERE HFN_ID = #{hfnId}
+		AND HFN_CD = #{hfnCd}
+		AND USER_NM = #{userNm}
+	</select>
+
+	<!-- Notice API -->
+	<!-- TODO:YYJ USEORG_CD 확인 필요 -->
+	<select id="selectUseorgNoticeData" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDetailRequest" resultType="java.util.HashMap">
+		SELECT
+		T1.USER_KEY, T1.USEORG_NM, T1.BRN, T1.USEORG_BANK_NO, T2.USER_NM,
+		<!--			T2.USER_POSITION, T2.USER_EMAIL-->
+		T1.USEORG_TEL, T2.USER_TEL
+		FROM PORTAL_USEORG_INFO T1
+		JOIN PORTAL_USER_INFO T2
+		ON T1.ENTR_CD = T2.ENTR_CD
+		JOIN PORTAL_USER_ROLE_INFO T3
+		ON T2.USER_KEY = T3.USER_KEY
+		WHERE T1.USER_KEY = #{userKey}
+		AND T3.ROLE_CD='2'
+	</select>
+
+	<select id="selectAppNoticeData" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="java.util.HashMap">
+		SELECT T1.USER_KEY, T1.APP_KEY, T1.APP_NM, T1.APP_SVC_ST_DT, T1.APP_SVC_EN_DT
+		FROM PORTAL_APP_INFO T1
+		<if test='appKey != null and appKey != ""'>
+			WHERE T1.APP_KEY = #{appKey}
+		</if>
+	</select>
+
+	<select id="selectAppApiListNoticeData" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="java.util.HashMap">
+		SELECT T1.API_VER, T1.API_URI
+		FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2
+		WHERE APP_KEY = #{appKey}
+		AND T1.API_ID = T2.API_ID
+	</select>
+
+	<select id="selectUseorgEncKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="String">
+		SELECT T2.ENC_KEY
+		FROM PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2
+		WHERE T1.USER_KEY = T2.USER_KEY
+		AND T1.APP_KEY = #{appKey}
+	</select>
+
+	<select id="selectEncKeyFromModByAppKey" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="String">
+		SELECT T2.ENC_KEY
+		FROM PORTAL_APP_INFO_MOD T1, PORTAL_USEORG_INFO T2
+		WHERE T1.USER_KEY = T2.USER_KEY
+		AND T1.APP_KEY = #{appKey}
+	</select>
+
+	<select id="countUseorgTable" resultType="Integer">
+		SELECT COUNT(USER_KEY)
+		FROM PORTAL_USEORG_INFO
+	</select>
+
+	<select id="selectUseorgEntrCd" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="String">
+		SELECT T2.ENTR_CD
+		FROM PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2
+		WHERE T1.USER_KEY = T2.USER_KEY
+		AND T1.APP_KEY = #{appKey}
+	</select>
+
+    <select id="selectUseorgEntrCdFromMod" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+        SELECT DISTINCT T2.ENTR_CD, T3.HFN_CD
+        FROM PORTAL_APP_INFO_MOD T1, PORTAL_USEORG_INFO T2, PORTAL_APP_API_INFO T3
+        WHERE T1.USER_KEY = T2.USER_KEY
+        AND T1.APP_KEY = T3.APP_KEY
+        AND T1.APP_KEY = #{appKey}
+    </select>
+
+    <!-- 기간연장 승인 요청 (PORTAL_APP_INFO) ≠ 수정 승인 요청 (PORTAL_APP_INFO_MOD) -->
+    <select id="selectUseorgEntrCdFromInfo" parameterType="com.hanafn.openapi.portal.views.dto.AppsRequest" resultType="apps">
+        SELECT DISTINCT T2.ENTR_CD, T2.ENC_KEY, T3.HFN_CD
+        FROM PORTAL_APP_INFO T1, PORTAL_USEORG_INFO T2, PORTAL_APP_API_INFO T3
+        WHERE T1.USER_KEY = T2.USER_KEY
+        AND T1.APP_KEY = T3.APP_KEY
+        AND T1.APP_KEY = #{appKey}
+    </select>
+
+	<select id="selectUseorgByEntrCd" parameterType="String" resultType="useorg">
+		SELECT *
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+			, IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.MOD_USER),
+					 IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.MOD_USER),
+							(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.MOD_USER))) AS MOD_USER
+		FROM PORTAL_USEORG_INFO T1
+		WHERE USER_KEY = #{values}
+	</select>
+
+	<select id="cntDevExists" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+		JOIN PORTAL_USER_ROLE_INFO T2
+		ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.USER_ID = #{userId}
+		AND T2.ROLE_CD = '6'
+		AND T1.USER_TEL = #{userTel}
+		AND T1.USER_EMAIL = #{userEmail}
+		AND T1.USER_STAT_CD = 'OK'
+	</select>
+
+	<select id="cntDevDupCheck" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+			JOIN PORTAL_USER_ROLE_INFO T2
+				ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.USER_ID = #{userId}
+			AND T2.ROLE_CD = '5'
+			AND T1.ENTR_CD = #{entrCd}
+			AND T1.USER_TEL = #{userTel}
+			AND T1.USER_EMAIL = #{userEmail}
+	</select>
+
+	<select id="checkDevExistsOtherUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UseorgRequest$UseorgDupCheckRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_USER_INFO T1
+		JOIN PORTAL_USER_ROLE_INFO T2
+		ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.USER_ID = #{userId}
+		AND T2.ROLE_CD = '5'
+		AND T1.ENTR_CD != #{entrCd}
+		AND T1.USER_TEL = #{userTel}
+		AND T1.USER_EMAIL = #{userEmail}
+	</select>
+
+	<update id="regDeveloperInfo" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_INFO
+		SET ENTR_CD = #{entrCd}
+		, USER_COMPANY = #{userCompany}
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{userKey}
+		<if test='userTel != null and userTel != ""'>
+			, USER_TEL = #{userTel}
+		</if>
+		<if test='userEmail != null and userEmail != ""'>
+			, USER_EMAIL = #{userEmail}
+		</if>
+		WHERE USER_KEY = #{userKey}
+		AND USER_APLV_STAT = 'APLV'
+		AND USER_STAT_CD = 'OK'
+	</update>
+
+	<update id="regDeveloperLogin" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_TYPE = 'ORGD'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<update id="regDeveloperRole" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_ROLE_INFO
+		SET ROLE_CD = '5'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<select id="selectDeveloperList" resultType="user">
+		SELECT T1.USER_ID, T1.USER_EMAIL, T1.USER_TEL, T1.USER_KEY
+		FROM PORTAL_USER_INFO T1, PORTAL_USER_LOGIN T2
+		WHERE T1.USER_KEY = T2.USER_KEY
+		AND T2.USER_TYPE = 'ORGD'
+		AND T1.ENTR_CD = #{entrCd}
+	</select>
+
+	<update id="deleteDeveloperInfo" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_INFO
+		SET ENTR_CD = ''
+		, USER_COMPANY = ''
+		, MOD_DTTM = NOW()
+		, MOD_USER = #{userKey}
+		WHERE USER_ID = #{userId}
+		AND USER_KEY = #{userKey}
+	</update>
+
+	<update id="deleteDeveloperLogin" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_TYPE = 'USER'
+		WHERE USER_ID = #{userId}
+		AND USER_KEY = #{userKey}
+	</update>
+
+	<update id="deleteDeveloperRole" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$RegistDeveloperRequest">
+		UPDATE PORTAL_USER_ROLE_INFO
+		SET ROLE_CD = '6'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<!-- 로그인 테이블관련 -->
+	<update id="updateUserLoginPwd" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UpdatePwdRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_PWD = #{newPwd}
+		   ,PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+	<insert id="insertPwHisUser" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UpdatePwdRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		#{seq}
+		,#{userKey}
+		,#{userId}
+		,#{newPwd}
+		,CURRENT_DATE()
+		)
+	</insert>
+
+	<!-- 개인회원 아이디 찾기 -->
+	<select id="searchUserId" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserRequest" resultType="user">
+		SELECT USER_ID
+		      ,USER_KEY
+		FROM PORTAL_USER_INFO
+		WHERE USER_NM = #{userNm}
+		AND USER_EMAIL = #{userEmail}
+	</select>
+
+	<!-- 사업자회원 아이디 찾기 -->
+	<select id="searchUserOrgId" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserorgRequest" resultType="useorg">
+		SELECT USEORG_ID
+		      ,USER_KEY
+		FROM PORTAL_USEORG_INFO
+		WHERE USEORG_NM = #{useorgNm}
+		AND BRN = #{brn}
+		AND USEORG_USER_EMAIL = #{useorgUserEmail}
+	</select>
+
+	<!-- 개인회원 비밀번호 찾기 -->
+	<select id="searchUserPassword" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserRequest" resultType="user">
+		SELECT USER_KEY
+		FROM PORTAL_USER_INFO
+		WHERE USER_ID = #{userId}
+		AND USER_NM = #{userNm}
+		AND USER_EMAIL = #{userEmail}
+	</select>
+
+	<!-- 사업자회원 비밀번호 찾기 -->
+	<select id="searchOrgPassword" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserorgRequest" resultType="useorg">
+		SELECT USER_KEY
+		FROM PORTAL_USEORG_INFO
+		WHERE USEORG_ID = #{useorgId}
+		AND USEORG_NM = #{useorgNm}
+		AND BRN = #{brn}
+		AND USEORG_USER_EMAIL = #{useorgUserEmail}
+	</select>
+
+	<!-- 비밀번호 인증정보 입력 -->
+	<insert id="insertSndCertMgntByPw" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_SND_CERT_MGNT
+		</selectKey>
+		INSERT INTO PORTAL_SND_CERT_MGNT
+		(
+		SEQ
+		, USER_KEY
+		, SEND_CD
+		, REG_DTTM
+		, CERT_VALID_TM
+		, EXPIRE_DTTM
+		, SEND_NO
+		, RECV_INFO
+		, SEND_CTNT
+		)
+		VALUES
+		(
+		 #{seq}
+		,#{userKey}
+		,#{sendCd}
+		,NOW()
+		,#{certValidTm}
+		,DATE_ADD(NOW(), INTERVAL #{certValidTm} MINUTE)
+		,#{sendNo}
+		,#{recvInfo}
+		,#{sendCtnt}
+		)
+	</insert>
+
+	<!-- 회원가입 인증정보 입력 -->
+	<insert id="insertEmailData" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_SND_CERT_MGNT
+		</selectKey>
+		INSERT INTO PORTAL_SND_CERT_MGNT
+		(
+		SEQ
+		, USER_KEY
+		, REG_DTTM
+		, CERT_VALID_TM
+		, EXPIRE_DTTM
+		, SEND_NO
+		, SEND_CD
+		, RECV_INFO
+		, SEND_CTNT
+		)
+		VALUES
+		(
+		#{seq}
+		,#{userKey}
+		,NOW()
+		,#{certValidTm}
+		,DATE_ADD(NOW(), INTERVAL +7 DAY)
+		,#{sendNo}
+		,#{sendCd}
+		,#{recvInfo}
+		,#{sendCtnt}
+		)
+	</insert>
+
+	<!-- 이메일 발송 이력 입력 -->
+	<insert id="insertMailSendData" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_SND_CERT_MGNT
+		</selectKey>
+		INSERT INTO PORTAL_SND_CERT_MGNT
+										(
+											SEQ,
+											USER_KEY,
+											RECV_INFO,
+											SEND_CD,
+											SEND_CTNT,
+											REG_DTTM,
+											RETRY_CNT
+										)
+										VALUES
+										(
+											#{seq},
+											#{userKey},
+											#{recvInfo},
+											#{sendCd},
+											#{sendCtnt},
+											NOW(),
+											0
+										)
+	</insert>
+
+	<!-- 하나메시지허브 발송 이력 입력 -->
+	<insert id="insertHubMsgData" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_SND_CERT_MGNT
+		</selectKey>
+		INSERT INTO PORTAL_SND_CERT_MGNT
+										(
+											SEQ,
+											USER_KEY,
+											RECV_INFO,
+											SEND_CD,
+											SEND_CTNT,
+											REG_DTTM,
+											RESULT_CD,
+											RETRY_CNT
+										)
+										VALUES
+										(
+											#{seq},
+											#{userKey},
+											#{recvInfo},
+											#{sendCd},
+											#{sendCtnt},
+											NOW(),
+											#{resultCd},
+											0
+										)
+
+	</insert>
+
+    <!-- 가입완료 - 인증정보조회  -->
+    <select id="selectCertMgnt" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest" resultType="user">
+        SELECT USER_KEY
+              ,EXPIRE_DTTM
+              ,SEND_NO
+        FROM PORTAL_SND_CERT_MGNT
+        WHERE SEND_NO = #{sendNo}
+    </select>
+
+    <!-- 인증완료 -->
+    <update id="authCompleteCertMgnt" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+        UPDATE PORTAL_SND_CERT_MGNT
+        SET CERT_DTTM = NOW()
+        WHERE SEND_NO = #{sendNo}
+    </update>
+
+    <!-- 인증완료_사업자 -->
+    <update id="authCompleteUseorgInfo" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+        UPDATE PORTAL_USEORG_INFO
+        SET USEORG_STAT_CD = 'OK'
+        WHERE USER_KEY = #{userKey}
+    </update>
+
+	<!-- 인증완료_외국인 -->
+	<update id="authCompleteUserInfo" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_STAT_CD = 'OK'
+		WHERE USER_KEY = #{userKey}
+	</update>
+
+    <!-- 인증정보조회 -->
+    <select id="selectCertMgntUser" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserRequest" resultType="user">
+		SELECT T1.USER_KEY
+			  ,T2.SEQ
+			  ,T2.SEND_NO
+			  ,T2.EXPIRE_DTTM
+		FROM PORTAL_USER_INFO T1
+	    INNER JOIN PORTAL_SND_CERT_MGNT T2 ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.USER_ID = #{userId}
+		ORDER BY SEQ DESC
+		LIMIT 1
+    </select>
+
+    <!-- 인증정보조회 -->
+    <select id="selectCertMgntUseorg" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$searchUserRequest" resultType="useorg">
+		SELECT T1.USER_KEY
+			  ,T2.SEQ
+			  ,T2.SEND_NO
+			  ,T2.EXPIRE_DTTM
+		FROM PORTAL_USEORG_INFO T1
+	    INNER JOIN PORTAL_SND_CERT_MGNT T2 ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.USEORG_ID = #{userId}
+		ORDER BY SEQ DESC
+		LIMIT 1
+    </select>
+
+	<!-- 인증완료 -->
+	<update id="updateCertMgnt" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		UPDATE PORTAL_SND_CERT_MGNT
+		SET CERT_DTTM = NOW()
+		WHERE USER_KEY = #{userKey}
+          AND SEQ = #{seq}
+	</update>
+
+	<update id="setUserPwd" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdUpdateRequest">
+		UPDATE PORTAL_USER_INFO
+		SET USER_PWD = #{userPwd}
+		, MOD_DTTM = NOW()
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<update id="setUserPwdLogin" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdUpdateRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_PWD = #{userPwd}
+		   ,PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<update id="updateHfnUserPwd" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserPwdUpdateRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET USER_PWD = #{userPwd}
+		   ,PWD_CHANGE_DT = CURRENT_DATE()
+		   ,TMP_PWD_YN = 'N'
+		WHERE HFN_ID = #{hfnId}
+	</update>
+
+	<insert id="setHfnUserPwdHis" parameterType="com.hanafn.openapi.portal.views.dto.HfnUserRequest$HfnUserPwdUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		#{seq}
+		,(
+		SELECT USER_KEY
+		FROM PORTAL_HFN_USER_INFO
+		WHERE HFN_ID = #{hfnId}
+		)
+		,#{hfnId}
+		,#{userPwd}
+		,CURRENT_DATE()
+		)
+
+	</insert>
+
+	<insert id="setUserPwHis" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		 SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		#{seq}
+		,(
+		    SELECT USER_KEY
+		    FROM PORTAL_USER_LOGIN
+		    WHERE USER_ID = #{userId}
+		 )
+		,#{userId}
+		,#{userPwd}
+		,CURRENT_DATE()
+		)
+
+	</insert>
+
+	<insert id="setUseorgPwHis" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$OrgPwdUpdateRequest">
+		<selectKey keyProperty="seq" order="BEFORE" resultType="String">
+			SELECT IFNULL(MAX(SEQ)+1, 1) AS seq FROM PORTAL_USER_PW_HIS
+		</selectKey>
+		INSERT INTO PORTAL_USER_PW_HIS
+		(
+		SEQ
+		,USER_KEY
+		,USER_ID
+		,USER_PWD
+		,PWD_CHANGE_DT
+		)
+		VALUES (
+		#{seq}
+		,(
+			SELECT USER_KEY
+			FROM PORTAL_USER_LOGIN
+			WHERE USER_ID = #{useorgId}
+		 )
+		,#{useorgId}
+		,#{useorgPwd}
+		,CURRENT_DATE()
+		)
+
+	</insert>
+
+	<update id="setOrgPwd" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$OrgPwdUpdateRequest">
+		UPDATE PORTAL_USEORG_INFO
+		SET USEORG_PWD = #{useorgPwd}
+		, MOD_DTTM = NOW()
+		WHERE USEORG_ID = #{useorgId}
+	</update>
+
+	<update id="setOrgPwdLogin" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$OrgPwdUpdateRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET USER_PWD = #{useorgPwd}
+		   ,PWD_CHANGE_DT = CURRENT_DATE()
+		WHERE USER_ID = #{useorgId}
+	</update>
+
+	<select id="selectAppKeyByAplvSeqNo" parameterType="String" resultType="String">
+		SELECT APLV_REQ_CD
+		FROM PORTAL_APLV_INFO
+		WHERE APLV_SEQ_NO = #{values}
+	</select>
+
+	<!-- 관리자포탈 로그인 실패횟수 카운트 리턴 -->
+	<select id="hfnLoginFailCntCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest" resultType="Integer">
+		SELECT LOGIN_FAIL_CNT
+		FROM PORTAL_HFN_USER_INFO
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</select>
+
+	<!-- 관리자포탈 로그인 실패 시 카운트 세팅 -->
+	<update id="hfnLoginFailCntSet" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET LOGIN_FAIL_CNT = #{loginFailCnt}
+        , LOGIN_DTTM = NOW()
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</update>
+
+	<!-- 관리자포탈 로그인 잠금여부 체인지 -->
+	<update id="hfnLoginLockChange" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET LOGIN_LOCK = 'Y'
+			, LOGIN_LOCK_TIME = NOW()
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</update>
+
+	<!-- 관리자포탈 로그인 잠금여부 리턴 -->
+	<select id="hfnLoginLockYn" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest" resultType="String">
+		SELECT LOGIN_LOCK
+		FROM PORTAL_HFN_USER_INFO
+		WHERE HFN_CD = #{hfnCd}
+		AND HFN_ID = #{hfnId}
+	</select>
+
+	<select id="getAdminAuth" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest" resultType="user">
+		SELECT IF(PWD_CHANGE_DT <![CDATA[ <= ]]> DATE(NOW() - INTERVAL 3 MONTH), 1, 0) AS PWD_CHANGE_DT
+		FROM PORTAL_HFN_USER_INFO
+		WHERE HFN_CD = #{hfnCd}
+		  AND HFN_ID = #{hfnId}
+	</select>
+
+
+	<!-- 이용자 포탈 로그인 실패횟수 카운트 리턴 -->
+	<select id="userLoginFailCntCheck" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest" resultType="Integer">
+		SELECT LOGIN_FAIL_CNT
+		FROM PORTAL_USER_LOGIN
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<!-- 이용자 포탈 로그인 실패 시 카운트 세팅 -->
+	<update id="userLoginFailCntSet" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET LOGIN_FAIL_CNT = #{loginFailCnt}
+        , LOGIN_DTTM = NOW()
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<!-- 이용자 포탈 로그인 잠금여부 체인지 -->
+	<update id="userLoginLockChange" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET LOGIN_LOCK = 'Y'
+		, LOGIN_LOCK_TIME = NOW()
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<!-- 이용자 포탈 로그인 잠금여부 리턴 -->
+	<select id="userLoginLockYn" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest" resultType="String">
+		SELECT LOGIN_LOCK
+		FROM PORTAL_USER_LOGIN
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<select id="getUserAuth" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest" resultType="user">
+		SELECT IF(PWD_CHANGE_DT <![CDATA[ <= ]]> DATE(NOW() - INTERVAL 3 MONTH), 1, 0) AS PWD_CHANGE_DT
+		FROM PORTAL_USER_LOGIN
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<insert id="insertApiJehu" parameterType="com.hanafn.openapi.portal.views.dto.ApiJehuRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="String">
+			SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+		</selectKey>
+		INSERT INTO PORTAL_PTNR_REQ
+		(  SEQ_NO
+		, ID_INDEX
+		, USER_KEY
+		, STAT_CD
+		, COMP_NM
+		, USER_NM
+		, QNA_TYPE
+		, USER_TEL
+		, API_NM
+		, HFN_CD
+		, REQ_TITLE
+		, REQ_CTNT
+		, UPLOAD_FILE_01
+		, UPLOAD_FILE_02
+		, REG_USER
+		, REG_DTTM
+		, ANSWER_YN  )
+		VALUE  (
+		   #{seqNo}
+		,  (SELECT IFNULL(MAX(T1.ID_INDEX) + 1, 1) FROM PORTAL_PTNR_REQ T1 WHERE T1.USER_KEY = #{userKey})
+		,  #{userKey}
+		,  'OK'
+		,  #{compNm}
+		,  #{userNm}
+		,  #{qnaType}
+		,  #{userTel}
+		,  #{apiNm}
+		,  #{hfnCd}
+		,  #{reqTitle}
+		,  #{reqCtnt}
+		,  #{fileData1}
+		,  #{fileData2}
+		,  #{userId}
+		,  NOW()
+		,  'N'  )
+	</insert>
+
+	<!-- 공지사항 조회 조건 -->
+	<sql id="whereNotice">
+		<where>
+			<if test='searchNotice != null and searchNotice != ""'>
+				AND (T1.NOTICE_SUBJECT LIKE CONCAT('%', #{searchNotice}, '%')
+					OR T1.NOTICE_CTNT LIKE CONCAT('%', #{searchNotice}, '%')
+					)
+			</if>
+			<if test='statCd == "OK"'>
+				AND T1.STAT_CD = 'OK'
+			</if>
+			<if test='statCd == "DEL"'>
+				AND T1.STAT_CD = 'DEL'
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectNoticeList" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest$NoticeListRequest" resultType="notice">
+		SELECT	SEQ_NO,
+				NOTICE_SUBJECT,
+				VIEW_CNT,
+				(SELECT USER_NM FROM PORTAL_HFN_USER_INFO
+				WHERE USER_KEY = T1.REG_USER) AS REG_USER,
+				REG_USER AS REG_ID,
+				REG_DTTM,
+				(SELECT USER_NM FROM PORTAL_HFN_USER_INFO
+				WHERE USER_KEY = T1.MOD_USER) AS MOD_USER,
+				MOD_USER,
+				MOD_DTTM,
+				STAT_CD
+		FROM	PORTAL_NOTICE T1
+		<include refid="whereNotice"/>
+		ORDER BY T1.REG_DTTM DESC
+		LIMIT #{pageOffset} , #{pageSize}
+	</select>
+
+	<select id="getNoticeFirstOne" resultType="notice">
+		SELECT NOTICE_SUBJECT
+			  ,NOTICE_CTNT
+			  ,REG_DTTM
+		      ,SEQ_NO
+		FROM PORTAL_NOTICE
+		WHERE STAT_CD = 'OK'
+		ORDER BY REG_DTTM DESC
+		LIMIT 1
+	</select>
+
+	<select id="countNoticeList"  parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest$NoticeListRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_NOTICE T1
+		<include refid="whereNotice"/>
+	</select>
+
+	<select id="detailNotice" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest" resultType="notice">
+		SELECT	T1.SEQ_NO,
+				T1.NOTICE_SUBJECT,
+				T1.NOTICE_CTNT,
+				T1.VIEW_CNT,
+			   (SELECT USER_NM FROM PORTAL_HFN_USER_INFO
+			    WHERE USER_KEY = T1.REG_USER) AS REG_USER,
+				T1.REG_DTTM,
+			   (SELECT USER_NM FROM PORTAL_HFN_USER_INFO
+			    WHERE USER_KEY = T1.MOD_USER) AS MOD_USER,
+				T1.MOD_DTTM
+		FROM	PORTAL_NOTICE T1
+		WHERE	T1.SEQ_NO = #{seqNo}
+	</select>
+
+	<update id="increaseNoticeViewCnt" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest">
+		UPDATE PORTAL_NOTICE
+		SET VIEW_CNT = #{viewCnt}
+		WHERE SEQ_NO = #{seqNo}
+	</update>
+
+	<insert id="insertNotice" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="Integer">
+			SELECT IFNULL(MAX(SEQ_NO)+1, 1) AS seqNo FROM PORTAL_NOTICE
+		</selectKey>
+		INSERT INTO PORTAL_NOTICE	(
+										SEQ_NO,
+										NOTICE_SUBJECT,
+										NOTICE_CTNT,
+										STAT_CD,
+										VIEW_CNT,
+										REG_USER,
+										REG_DTTM,
+										MOD_USER,
+										MOD_DTTM
+									)
+									VALUES
+									(
+										#{seqNo},
+										#{noticeSubject},
+										#{noticeCtnt},
+										'OK',
+										0,
+										#{regUserId},
+										NOW(),
+										NULL,
+										NULL
+									)
+	</insert>
+
+	<update id="deleteNotice" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest">
+		UPDATE PORTAL_NOTICE
+		SET STAT_CD = 'DEL',
+			MOD_USER = #{modId},
+			MOD_DTTM = NOW()
+		WHERE SEQ_NO = #{seqNo}
+	</update>
+
+	<update id="updateNotice" parameterType="com.hanafn.openapi.portal.views.dto.NoticeRequest">
+		UPDATE	PORTAL_NOTICE
+		SET		NOTICE_SUBJECT = #{noticeSubject},
+				NOTICE_CTNT = #{noticeCtnt},
+				MOD_USER = #{modUserId},
+				MOD_DTTM = NOW()
+		WHERE	SEQ_NO = #{seqNo}
+	</update>
+
+	<!-- FAQ 조회 조건 -->
+	<sql id="whereFAQ">
+		<where>
+			<if test='searchFaq != null and searchFaq != ""'>
+				AND (T1.FAQ_SUBJECT LIKE CONCAT('%', #{searchFaq}, '%')
+					OR T1.FAQ_CTNT LIKE CONCAT('%', #{searchFaq}, '%')
+				)
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectFaqList" parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest" resultType="faq">
+		SELECT	SEQ_NO,
+				FAQ_TYPE,
+				STAT_CD,
+				FAQ_SUBJECT,
+				FAQ_CTNT,
+				REG_USER,
+				REG_DTTM,
+				MOD_USER,
+				MOD_DTTM
+		FROM	PORTAL_FAQ T1
+		<include refid="whereFAQ"/>
+		ORDER BY T1.SEQ_NO DESC
+		LIMIT #{pageOffset} , #{pageSize}
+	</select>
+
+	<select id="countFaqList" parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_FAQ T1
+		<include refid="whereFAQ"/>
+	</select>
+
+	<select id="detailFaq" parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest">
+		SELECT	SEQ_NO,
+				FAQ_TYPE,
+				STAT_CD,
+				FAQ_SUBJECT,
+				FAQ_CTNT,
+				REG_USER,
+				REG_DTTM,
+				MOD_USER,
+				MOD_DTTM
+		FROM	PORTAL_FAQ T1
+		WHERE	SEQ_NO = #{seqNo}
+	</select>
+
+	<insert id="insertFaq"  parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest">
+		<selectKey keyProperty="seqNo" order="BEFORE" resultType="Integer">
+			SELECT IFNULL(MAX(SEQ_NO)+1, 1) AS seqNo FROM PORTAL_FAQ
+		</selectKey>
+		INSERT INTO PORTAL_NOTICE	(
+										SEQ_NO,
+										FAQ_TYPE,
+										STAT_CD,
+										FAQ_SUBJECT,
+										FAQ_CTNT,
+										REG_USER,
+										REG_DTTM,
+										MOD_USER,
+										MOD_DTTM
+									)
+									VALUES
+									(
+										#{seqNo},
+										#{faqType},
+										#{statCd},
+										#{faqSubject},
+										#{faqCtnt},
+										#{regId},
+										NOW(),
+										NULL,
+										NULL
+									)
+	</insert>
+
+	<update id="deleteFaq" parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest">
+		UPDATE	PORTAL_FAQ
+		SET		STAT_CD = 'DEL',
+				MOD_USER = #{modId},
+				MOD_DTTM = NOW()
+		WHERE	SEQ_NO = #{seqNo}
+	</update>
+
+	<update id="updateFaq" parameterType="com.hanafn.openapi.portal.views.dto.FaqRequest">
+		UPDATE	PORTAL_FAQ
+		SET		FAQ_SUBJECT = #{faqSubject},
+				FAQ_CTNT = #{faqCtnt},
+				MOD_USER = #{modId},
+				MOD_DTTM = NOW()
+		WHERE	SEQ_NO = #{seqNo}
+	</update>
+
+	<!-- QnA 조회 조건 -->
+	<sql id="whereQnA">
+		<where>
+			<if test='statCd == "OK"'>
+				AND STAT_CD = 'OK'
+			</if>
+			<if test='statCd == "ALL"'>
+				AND STAT_CD IN ('OK', 'DEL')
+			</if>
+			<if test='statCd == "DEL"'>
+				AND STAT_CD = 'DEL'
+			</if>
+			<if test='answerYn == "Y"'>
+				AND T1.ANSWER_YN = 'Y'
+			</if>
+			<if test='answerYn == "N"'>
+				AND T1.ANSWER_YN = 'N'
+			</if>
+			<if test='qnaType == "TECH"'>
+				AND T1.QNA_TYPE = 'TECH'
+			</if>
+			<if test='qnaType == "BIZ"'>
+				AND T1.QNA_TYPE = 'BIZ'
+			</if>
+			<if test='userKey != null and userKey != ""'>
+				AND T1.USER_KEY = #{userKey}
+			</if>
+			<if test='hfnCd != null and hfnCd != ""'>
+				AND T1.HFN_CD = #{hfnCd}
+			</if>
+			<if test='searchQna != null and searchQna != ""'>
+				AND (T1.USER_ID LIKE CONCAT('%', #{searchQna}, '%')
+					OR T1.REQ_TITLE LIKE CONCAT('%" #{searchQna}, '%')
+					)
+			</if>
+			<if test='siteCd == "userPortal"'>
+				AND STAT_CD != 'DEL'
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectQnaList" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest" resultType="qna">
+		SELECT	T1.SEQ_NO,
+				T1.ID_INDEX,
+				T1.COMP_NM,
+				T1.STAT_CD,
+				T1.QNA_TYPE,
+				T1.USER_KEY,
+				T1.USER_NM,
+				T1.USER_TEL,
+				T1.API_NM,
+				T1.HFN_CD,
+				T1.REQ_TITLE,
+				T1.UPLOAD_FILE_01,
+				T1.UPLOAD_FILE_02,
+				T1.REG_USER,
+				T1.REG_DTTM,
+				T1.ANSWER_YN,
+				T1.ANSWER,
+				T1.MOD_USER,
+				T1.MOD_DTTM
+		FROM PORTAL_PTNR_REQ T1
+		<include refid="whereQnA"/>
+		ORDER BY REG_DTTM DESC, ID_INDEX DESC
+		LIMIT #{pageOffset}, #{pageSize}
+	</select>
+
+	<select id="countQna" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_PTNR_REQ T1
+		<include refid="whereQnA"/>
+	</select>
+
+	<select id="detailQna" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest" resultType="qna">
+		SELECT *
+		FROM PORTAL_PTNR_REQ T1
+		WHERE T1.SEQ_NO = #{seqNo}
+	</select>
+
+	<update id="deleteQna" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest">
+		UPDATE	PORTAL_PTNR_REQ
+		SET		STAT_CD = 'DEL',
+				MOD_USER = #{modId},
+				MOD_DTTM = NOW()
+		WHERE	SEQ_NO = #{seqNo}
+	</update>
+
+	<update id="updateAnswer" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest">
+		UPDATE	PORTAL_PTNR_REQ
+		SET		ANSWER_YN = 'Y',
+				MOD_USER = #{modId},
+				MOD_DTTM = NOW(),
+				ANSWER = #{answer}
+		WHERE	SEQ_NO = #{seqNo}
+	</update>
+
+	<select id="selectQnaAttachment01" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest" resultType="String">
+		SELECT	UPLOAD_FILE_01
+		FROM	PORTAL_PTNR_REQ
+		WHERE	SEQ_NO = #{seqNo}
+	</select>
+
+	<select id="selectQnaAttachment02" parameterType="com.hanafn.openapi.portal.views.dto.QnaRequest" resultType="String">
+		SELECT	UPLOAD_FILE_02
+		FROM	PORTAL_PTNR_REQ
+		WHERE	SEQ_NO = #{seqNo}
+	</select>
+
+    <insert id="insertApiChargeDiscountRate" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+        INSERT INTO PORTAL_CHARGE_DISCOUNT_RATE (
+            APP_KEY
+            , API_ID
+            , ST_DT
+            , EN_DT
+            , DISCOUNT_RATE
+            , USE_FL
+            , REG_DTTM
+            , REG_USER
+            , MOD_DTTM
+            , MOD_USER
+        )
+        VALUES (
+             #{appKey}
+            , #{apiId}
+            <if test='stDt != null and stDt != ""'>
+            , #{stDt}
+		    </if>
+		    <if test='stDt == null or stDt == ""'>
+		    , NULL
+		    </if>
+		    <if test='enDt != null and enDt != ""'>
+            , #{enDt}
+		    </if>
+			<if test='enDt == null or enDt == ""'>
+			, NULL
+			</if>
+			<if test='discountRate != null and discountRate != ""'>
+			, #{discountRate}
+			</if>
+			<if test='discountRate == null or discountRate == ""'>
+           , 0
+			</if>
+			<if test='discountRate != null and discountRate != ""'>
+			, #{useFl}
+			</if>
+			<if test='useFl == null or useFl == ""'>
+           , 'WAIT'
+           </if>
+           , NOW()
+		   , #{regUserId}
+           , NOW()
+		   , #{regUserId}
+        )
+    </insert>
+
+	<update id="updateApi" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+		SET DISCOUNT_RATE = #{discountRate}
+		   ,ST_DT = #{stDt}
+		   ,EN_DT = #{enDt}
+		   ,MOD_USER = #{regUserId}
+		   ,MOD_DTTM = NOW()
+        WHERE CHARGE_DISCOUNT_RATE_ID = #{chargeDiscountRateId}
+	</update>
+
+    <update id="updateDiscount" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+        UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+        SET USE_FL = 'Y'
+        WHERE APP_KEY = #{appKey}
+          AND USE_FL = 'WAIT'
+    </update>
+
+	<delete id="deleteDiscountForN" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		DELETE FROM PORTAL_CHARGE_DISCOUNT_RATE
+		WHERE APP_KEY = #{appKey}
+		  AND USE_FL = 'N'
+	</delete>
+
+	<delete id="deleteDiscountForWAIT" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		DELETE FROM PORTAL_CHARGE_DISCOUNT_RATE
+		WHERE APP_KEY = #{appKey}
+		  AND USE_FL = 'WAIT'
+	</delete>
+
+	<update id="updateDiscountForWAIT" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+		SET USE_FL = 'REJECT'
+		WHERE APP_KEY = #{appKey}
+		  AND USE_FL = 'WAIT'
+	</update>
+
+	<update id="updateDiscountByYForN" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+		SET USE_FL = 'Y'
+		WHERE APP_KEY = #{appKey}
+		  AND USE_FL = 'N'
+	</update>
+
+	<update id="updateDiscountByNForAppKeyAndApiId" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+		UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+		SET USE_FL = 'N'
+		WHERE APP_KEY = #{appKey}
+		  AND API_ID = #{apiId}
+	</update>
+
+    <update id="updateDelDiscount" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+        UPDATE PORTAL_CHARGE_DISCOUNT_RATE
+        SET USE_FL = 'N'
+        WHERE APP_KEY = #{appKey}
+    </update>
+
+    <delete id="deleteChargeDiscountRate" parameterType="com.hanafn.openapi.portal.views.vo.RequestApiVO">
+        DELETE FROM  PORTAL_CHARGE_DISCOUNT_RATE
+        WHERE CHARGE_DISCOUNT_RATE_ID = #{chargeDiscountRateId}
+    </delete>
+
+	<update id="hfnLoginLockRelease" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$HfnLoginLockCheckRequest">
+		UPDATE PORTAL_HFN_USER_INFO
+		SET LOGIN_LOCK_TIME = NULL,
+		LOGIN_FAIL_CNT = 0,
+		LOGIN_DTTM = NOW(),
+		LOGIN_LOCK = 'N'
+		WHERE HFN_CD = #{hfnCd} AND HFN_ID = #{hfnId}
+	</update>
+
+	<update id="userLoginLockRelease" parameterType="com.hanafn.openapi.portal.views.dto.UserLoginRequest$UserLoginLockCheckRequest">
+		UPDATE PORTAL_USER_LOGIN
+		SET LOGIN_LOCK_TIME = NULL,
+			LOGIN_FAIL_CNT = 0,
+			LOGIN_DTTM = NOW(),
+			LOGIN_LOCK = 'N'
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<select id="getAppUseorg" parameterType="String" resultType="useorg">
+		SELECT T1.APP_NM
+			  ,T2.USEORG_NM
+			  ,T2.USEORG_USER_EMAIL
+		FROM PORTAL_APP_INFO_MOD T1
+	    INNER JOIN PORTAL_USEORG_INFO T2 ON T1.USER_KEY = T2.USER_KEY
+		WHERE T1.APP_KEY = #{aplvReqCd}
+		LIMIT 1
+	</select>
+
+	<select id="getUseorg" parameterType="String" resultType="useorg">
+		SELECT USEORG_NM
+			  ,USEORG_USER_EMAIL
+		FROM PORTAL_USEORG_INFO
+		WHERE USER_KEY = #{aplvReqCd}
+	</select>
+
+	<select id="getHfnCdTxt" parameterType="String" resultType="String">
+		SELECT HFN_NM
+		FROM PORTAL_HFN_INFO
+		WHERE HFN_CD = #{hfnCd}
+		LIMIT 1
+	</select>
+
+	<insert id="insertPrivacyReleaseLog" parameterType="com.hanafn.openapi.portal.views.dto.PrivacyReleaseLogRequest">
+		<selectKey keyProperty="idx" order="BEFORE" resultType="Integer">
+			SELECT IFNULL(MAX(IDX)+1, 1) AS idx FROM PORTAL_PRIVACY_RELEASE_LOG
+		</selectKey>
+		INSERT INTO PORTAL_PRIVACY_RELEASE_LOG (
+			IDX
+			, MENU_NM
+			, USER_KEY
+			, REG_DTTM
+			, REG_USER
+		)
+		VALUES (
+			#{idx}
+		    , #{menuNm}
+		    , #{userKey}
+		    , NOW()
+		    , #{regId}
+	    );
+	</insert>
+
+	<select id="selectUserkeyByUserid" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest" resultType="String">
+		SELECT 	USER_KEY
+		FROM 	PORTAL_USER_LOGIN
+		WHERE 	USER_ID = #{userId}
+	</select>
+
+	<sql id="whereCertMail">
+		<where>
+			<if test='userKey != null and userKey != ""'>
+				AND USER_KEY = #{userKey}
+			</if>
+			<if test='userId != null and userId != ""'>
+				AND USER_ID = #{userId}
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectCertMailList" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest" resultType="certMail">
+		SELECT 	T1.*, T2.USER_ID
+		FROM 	PORTAL_SND_CERT_MGNT T1 INNER JOIN (SELECT USER_KEY, USER_ID FROM PORTAL_USER_LOGIN) T2 ON T1.USER_KEY = T2.USER_KEY
+		<if test='userKey != null and userKey != ""'>
+		WHERE 	T1.USER_KEY = #{userKey}
+		</if>
+		ORDER BY REG_DTTM DESC
+		LIMIT #{pageOffset} , #{pageSize}
+	</select>
+
+	<select id="countCertMailList" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest" resultType="Integer">
+		SELECT 	COUNT(*)
+		FROM 	PORTAL_SND_CERT_MGNT T1 INNER JOIN (SELECT USER_KEY, USER_ID FROM PORTAL_USER_LOGIN) T2 ON T1.USER_KEY = T2.USER_KEY
+		<if test='userKey != null and userKey != ""'>
+		WHERE 	T1.USER_KEY = #{userKey}
+		</if>
+	</select>
+
+	<select id="detailCertMail" parameterType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest" resultType="certMail">
+		SELECT 	T1.*, T2.USER_ID
+		FROM 	PORTAL_SND_CERT_MGNT T1 INNER JOIN (SELECT USER_KEY, USER_ID FROM PORTAL_USER_LOGIN) T2 ON T1.USER_KEY = T2.USER_KEY
+		WHERE 	T1.SEQ = #{seq}
+	</select>
+
+	<select id="selectBatchIdList" resultType="com.hanafn.openapi.portal.views.vo.BatchLogVO">
+		SELECT DISTINCT BATCH_ID
+		FROM PORTAL_BATCH_HISTORY
+	</select>
+
+	<select id="countBatchLogList" parameterType="com.hanafn.openapi.portal.views.dto.BatchLogListRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_BATCH_HISTORY T1
+		<include refid="whereBatchLog"/>
+	</select>
+
+	<select id="selectBatchLogList" parameterType="com.hanafn.openapi.portal.views.dto.BatchLogListRequest" resultType="batchLog">
+		SELECT T1.BATCH_HISTORY_ID
+			, T1.BATCH_ID
+			, T1.NUMBER_OF_PROCESSING
+            , T1.BATCH_RESULT
+            , DATE_fORMAT(T1.BATCH_START_DTTM, '%Y-%m-%d %H:%i:%s') AS BATCH_START_DATE
+            , DATE_fORMAT(T1.REG_DTTM, '%Y-%m-%d %H:%i:%s') AS BATCH_END_DATE
+		FROM PORTAL_BATCH_HISTORY T1
+		<include refid="whereBatchLog"/>
+		ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<sql id="whereBatchLog">
+		<where>
+			<if test='batchId != null and batchId != ""'>
+				AND T1.BATCH_ID = #{batchId}
+			</if>
+			<if test='batchResult != null and batchResult != ""'>
+				AND T1.BATCH_RESULT = #{batchResult}
+			</if>
+			<if test='searchStDt != null and searchStDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+			</if>
+			<if test='searchEnDt != null and searchEnDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectTrx" parameterType="com.hanafn.openapi.portal.views.dto.TrxRequest" resultType="trx">
+		SELECT *
+		FROM PORTAL_TRX_INFO T1
+		WHERE (	T1.TRX_CD LIKE CONCAT('%', #{search}, '%') OR T1.TRX_NM LIKE CONCAT('%', #{search}, '%')	)
+		ORDER BY T1.TRX_CD ASC
+		LIMIT #{pageOffset}, #{pageSize}
+	</select>
+
+	<select id="cntTrxList" parameterType="com.hanafn.openapi.portal.views.dto.TrxRequest" resultType="Integer">
+		SELECT COUNT(*)
+		FROM PORTAL_TRX_INFO T1
+		WHERE (	T1.TRX_CD LIKE CONCAT('%', #{search}, '%') OR T1.TRX_NM LIKE CONCAT('%', #{search}, '%')	)
+		ORDER BY T1.TRX_CD ASC
+	</select>
+
+	<select id="detailTrx" parameterType="com.hanafn.openapi.portal.views.dto.TrxRequest" resultType="trx">
+		SELECT *
+		FROM PORTAL_TRX_INFO T1
+		WHERE T1.TRX_CD = #{trxCd}
+		LIMIT 1
+	</select>
+
+	<insert id="regTrx" parameterType="com.hanafn.openapi.portal.views.dto.TrxRequest">
+		INSERT INTO PORTAL_TRX_INFO (
+			TRX_CD,
+			TRX_NM,
+			TRX_GRANT,
+			REG_USER,
+			REG_DTTM
+		) VALUE (
+			#{trxCd},
+			#{trxNm},
+			#{trxGrant},
+			#{regUser},
+			NOW()
+		)
+	</insert>
+
+	<update id="updateTrx" parameterType="com.hanafn.openapi.portal.views.dto.TrxRequest">
+		UPDATE PORTAL_TRX_INFO
+		SET TRX_CD = #{trxCd},
+			TRX_NM = #{trxNm},
+			TRX_GRANT = #{trxGrant},
+			MOD_USER = #{modUser},
+			MOD_DTTM = NOW()
+		WHERE TRX_CD = #{trxCd}
+	</update>
+
+	<select id="getUserCertMgnt" parameterType="com.hanafn.openapi.portal.views.dto.UserRequest$UserPwdUpdateRequest" resultType="com.hanafn.openapi.portal.views.dto.SndCertMgntRequest">
+		SELECT MAX(SEQ) AS SEQ
+		FROM PORTAL_USER_LOGIN T1
+		     INNER JOIN PORTAL_SND_CERT_MGNT T2 ON T1.USER_KEY = T2.USER_KEY
+        WHERE T1.USER_ID = #{userId}
+          AND T2.SEND_NO = #{authNum}
+	</select>
+
+	<select id="selectEntrCdFromUserKey" parameterType="String" resultType="String">
+		SELECT ENTR_CD
+		FROM PORTAL_USEORG_INFO
+		WHERE USER_KEY = #{value}
+	</select>
+
+	<select id="getPwHisDate" parameterType="String" resultType="String">
+		SELECT PWD_CHANGE_DT
+		FROM PORTAL_USER_PW_HIS
+		WHERE USER_ID = #{userId}
+		  AND SEQ = (SELECT MAX(SEQ) AS SEQ FROM PORTAL_USER_PW_HIS WHERE USER_ID = #{userId})
+	</select>
+
+	<!-- 로그인 - 인증정보조회  -->
+	<select id="selectLoginCertMgnt" parameterType="String" resultType="user">
+        SELECT EXPIRE_DTTM
+              ,SEND_NO
+        FROM PORTAL_SND_CERT_MGNT
+        WHERE USER_KEY = #{userKey}
+          AND SEND_CD = 'E1'
+          AND SEQ = (SELECT MAX(SEQ) AS SEQ FROM PORTAL_SND_CERT_MGNT WHERE USER_KEY = #{userKey} AND SEND_CD = 'E1')
+    </select>
+</mapper>

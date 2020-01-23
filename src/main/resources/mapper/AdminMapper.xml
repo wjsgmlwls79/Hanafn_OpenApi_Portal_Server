@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.admin.views.repository.adminRepository">
+
+<insert id="insertWebPageAccessLog" parameterType="com.hanafn.openapi.portal.admin.views.dto.MenuRequest">
+    <selectKey keyProperty="idx" order="BEFORE" resultType="String">
+        SELECT DATE_FORMAT(CURRENT_TIMESTAMP(6), '%Y%m%d%H%i%s%f')
+    </selectKey>
+    INSERT INTO PORTAL_ACCESS_LOG (
+        IDX
+        ,PORTAL_TYPE
+        ,PAGE_URL
+        ,USER_IP
+        ,USER_KEY
+        ,ACCESS_DATE
+        ,ACCESS_TIME
+    ) VALUES (
+        #{idx}
+        ,#{portalType}
+        ,#{pageUrl}
+        ,#{userIp}
+        ,#{userKey}
+        ,CURDATE()
+        ,CURTIME()
+    )
+</insert>
+
+</mapper>

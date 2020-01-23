@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.GuideRepository">
+    <sql id="paging">
+        LIMIT #{pageOffset} , #{pageSize}
+    </sql>
+<!--
+	************************개발 가이드************************
+	-->
+
+    <!-- 조회 조건 -->
+    <sql id="whereApiDevGuide">
+        <where>
+            <if test='searchHfnCd != null and searchHfnCd != ""'>
+                AND T1.HFN_CD = #{searchHfnCd}
+            </if>
+            <if test='searchAppKey != null and searchAppKey != ""'>
+                AND T2.APP_KEY = #{searchAppKey}
+                AND T2.APP_KEY = T3.APP_KEY
+                AND T3.APP_APLV_STAT_CD NOT IN ('CANCEL','REJECT')
+            </if>
+            <if test='searchNm != null and searchNm != ""'>
+                AND T1.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+            </if>
+            <if test='searchApiCtgrs != null and searchApiCtgrs != ""'>
+                AND T1.CTGR_CD IN ${searchApiCtgrs}
+            </if>
+            <if test='searchUserKey != null and searchUserKey != ""'>
+                AND ( T1.API_PUB_YN = 'Y' OR(T1.API_PUB_YN = 'N' AND T1.USER_KEY = #{searchUserKey}))
+                AND T3.USER_KEY = #{searchUserKey}
+                AND T1.API_ID = T2.API_ID
+            </if>
+            AND T1.API_STAT_CD = 'OK'
+            AND T4.CTGR_STAT_CD = 'OK'
+            AND T1.CTGR_CD = T4.CTGR_CD
+        </where>
+    </sql>
+
+    <!-- 조회 조건 (개발가이드 - 앱 선택 후 API 목록 보여줄 때-->
+    <sql id="whereApiDevGuideWhenAppSelected">
+        <where>
+            <if test='searchHfnCd != null and searchHfnCd != ""'>
+                AND T1.HFN_CD = #{searchHfnCd}
+            </if>
+            <if test='searchAppKey != null and searchAppKey != ""'>
+                AND T2.APP_KEY = #{searchAppKey}
+                AND T2.APP_KEY = T3.APP_KEY
+            </if>
+            <if test='searchNm != null and searchNm != ""'>
+                AND T1.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+            </if>
+            <if test='searchApiCtgrs != null and searchApiCtgrs != ""'>
+                AND T1.CTGR_CD IN ${searchApiCtgrs}
+            </if>
+            <if test='searchUserKey != null and searchUserKey != ""'>
+                AND ( T1.API_PUB_YN = 'Y' OR(T1.API_PUB_YN = 'N' AND T1.USER_KEY = #{searchUserKey}))
+                AND T3.USER_KEY = #{searchUserKey}
+                AND T1.API_ID = T2.API_ID
+            </if>
+            AND T1.API_STAT_CD = 'OK'
+            AND T4.CTGR_STAT_CD = 'OK'
+            AND T1.CTGR_CD = T4.CTGR_CD
+        </where>
+    </sql>
+
+    <!-- 조회 조건2 -->
+    <sql id="whereApiDevGuideAllB">
+        <where>
+            <if test='searchHfnCd != null and searchHfnCd != ""'>
+                AND T1.HFN_CD = #{searchHfnCd}
+            </if>
+            <if test='searchUserKey != null and searchUserKey != ""'>
+                AND T5.USER_KEY = #{searchUserKey}
+            </if>
+            <if test='searchAppKey != null and searchAppKey != ""'>
+                AND T4.APP_KEY = #{searchAppKey}
+            </if>
+            <if test='searchNm != null and searchNm != ""'>
+                AND T2.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+            </if>
+            <if test='searchApiCtgrs != null and searchApiCtgrs != ""'>
+                AND T6.CTGR_CD IN ${searchApiCtgrs}
+            </if>
+            AND T2.API_STAT_CD = 'OK'
+            AND T2.API_PUB_YN = 'Y'
+            AND T6.CTGR_STAT_CD = 'OK'
+            AND T2.CTGR_CD = T6.CTGR_CD
+        </where>
+    </sql>
+
+    <!-- 조회 조건2 -->
+    <sql id="whereApiDevGuideAll">
+        <where>
+            <if test='searchHfnCd != null and searchHfnCd != ""'>
+                AND T1.HFN_CD = #{searchHfnCd}
+            </if>
+            <if test='searchAppKey != null and searchAppKey != ""'>
+                AND T3.APP_KEY = #{searchAppKey}
+            </if>
+            <if test='searchNm != null and searchNm != ""'>
+                AND T1.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+            </if>
+            <if test='searchApiCtgrs != null and searchApiCtgrs != ""'>
+                AND T1.CTGR_CD IN ${searchApiCtgrs}
+            </if>
+            AND T1.API_STAT_CD = 'OK'
+            AND T2.CTGR_STAT_CD = 'OK'
+            AND T1.CTGR_CD = T2.CTGR_CD
+        </where>
+    </sql>
+
+    <!--
+        **** 개발가이드 ***
+    -->
+    <select id="selectApiDevGuideList" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiDevGuide">
+        SELECT DISTINCT T1.*
+        , T4.CTGR_NM
+        FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2, PORTAL_APP_INFO T3, PORTAL_API_CTGR_INFO T4
+        <include refid="whereApiDevGuideWhenAppSelected"/>
+        ORDER BY T1.CTGR_CD DESC, T1.REG_DTTM DESC
+    </select>
+
+    <select id="selectApiDevGuideAllList" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiDevGuide">
+        SELECT T1.*
+        , T2.CTGR_NM
+        FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2, PORTAL_APP_API_INFO T3
+        <include refid="whereApiDevGuideAll"/>
+        GROUP BY T1.API_ID
+        ORDER BY T1.CTGR_CD DESC, T1.REG_DTTM DESC
+    </select>
+
+    <select id="selectAppsAll" parameterType="com.hanafn.openapi.portal.views.dto.AppsAllRequest" resultType="apps">
+        SELECT DISTINCT T1.APP_KEY
+        , T1.APP_NM
+        , T1.APP_CLIENT_ID
+        , T1.NEW_APP_CLIENT_ID
+        , T1.APP_SCR
+        , T1.NEW_APP_SCR
+        FROM PORTAL_APP_INFO T1
+        INNER JOIN PORTAL_APP_API_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+        <if test='searchUserKey != null and searchUserKey != ""'>
+            AND T1.USER_KEY = #{searchUserKey}
+        </if>
+        <if test='searchHfnCd != null and searchHfnCd != ""'>
+            AND T2.HFN_CD = #{searchHfnCd}
+        </if>
+        AND T1.APP_STAT_CD = 'OK'
+    </select>
+
+    <select id="selectDevGuidesUseorgAll" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest$ApiDevGuideUseorgAllRequest" resultType="useorg">
+        SELECT T2.USER_KEY, T3.USEORG_NM, T3.ENTR_CD
+        FROM PORTAL_APP_API_INFO T1, PORTAL_APP_INFO T2, PORTAL_USEORG_INFO T3
+        WHERE T1.API_ID = #{searchApiId}
+            AND T2.APP_STAT_CD = 'OK'
+            AND T1.APP_KEY = T2.APP_KEY
+            AND T2.USER_KEY = T3.USER_KEY
+            AND T1.USE_FL = 'Y'
+        GROUP BY T2.USER_KEY, T3.USEORG_NM
+        ORDER BY T2.USER_KEY DESC
+    </select>
+
+    <select id="selectDevGuidesApiCtgrForUseorgList" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiCtgr">
+        SELECT DISTINCT T4.CTGR_CD, T4.CTGR_NM
+        FROM PORTAL_API_INFO T1, PORTAL_APP_API_INFO T2, PORTAL_APP_INFO T3, PORTAL_API_CTGR_INFO T4
+        <include refid="whereApiDevGuide"/>
+        ORDER BY T4.CTGR_NM ASC
+    </select>
+
+<!--    <select id="selectDevGuidesApiCtgrAll" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiCtgr">-->
+<!--        SELECT DISTINCT T2.CTGR_CD-->
+<!--        , T2.CTGR_NM-->
+<!--        FROM PORTAL_API_INFO T1, PORTAL_API_CTGR_INFO T2-->
+<!--        <include refid="whereApiDevGuideAll"/>-->
+<!--        ORDER BY T2.CTGR_NM ASC-->
+<!--    </select>-->
+
+    <select id="selectDevGuidesApiCtgrAll" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest" resultType="apiCtgr">
+    SELECT DISTINCT T6.CTGR_CD
+    , T6.CTGR_NM
+    FROM PORTAL_HFN_INFO T1
+        INNER JOIN PORTAL_API_INFO T2 ON T1.HFN_CD = T2.HFN_CD
+        INNER JOIN PORTAL_APP_API_INFO T3 ON T2.API_ID = T3.API_ID
+        INNER JOIN PORTAL_APP_INFO T4 ON T3.APP_KEY = T4.APP_KEY
+        INNER JOIN PORTAL_USEORG_INFO T5 ON T4.USER_KEY = T5.USER_KEY
+        INNER JOIN PORTAL_API_CTGR_INFO T6 ON T2.CTGR_CD = T6.CTGR_CD
+    <include refid="whereApiDevGuideAllB"/>
+    ORDER BY T6.CTGR_NM ASC
+    </select>
+
+    <select id="selectDevGuidesAppsAll" parameterType="com.hanafn.openapi.portal.views.dto.ApiDevGuideRequest$ApiDevGuideApiAllRequest" resultType="apps">
+    SELECT T2.APP_KEY
+    , T2.APP_NM
+    , T2.APP_CLIENT_ID
+    , T2.NEW_APP_CLIENT_ID
+    , T2.APP_SCR
+    , T2.NEW_APP_SCR
+    FROM PORTAL_APP_API_INFO T1, PORTAL_APP_INFO T2, PORTAL_USEORG_INFO T3
+    WHERE T1.API_ID = #{searchApiId}
+        AND T2.APP_STAT_CD = 'OK'
+        AND T3.USER_KEY = #{searchUserKey}
+        AND T1.APP_KEY = T2.APP_KEY
+        AND T2.USER_KEY = T3.USER_KEY
+        AND T1.USE_FL = 'Y'
+        GROUP BY T2.APP_KEY
+
+    </select>
+
+    <select id="selectEnckeyByEntrCd" parameterType="String" resultType="String">
+        SELECT ENC_KEY
+        FROM PORTAL_USEORG_INFO
+        WHERE ENTR_CD = #{value}
+    </select>
+</mapper>

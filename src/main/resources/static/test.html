@@ -1,0 +1,133 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[카드 paycheck page]</h2>
+<table class="tg" style="undefined;table-layout: fixed; width: 929px">
+  <colgroup>
+    <col style="width: 236px">
+    <col style="width: 277px">
+    <col style="width: 416px">
+  </colgroup>
+  <tr>
+    <th class="tg-c3ow">변수명</th>
+    <th class="tg-c3ow">Input</th>
+    <th class="tg-c3ow">Output</th>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">RRNO</td>
+    <td class="tg-c3ow"><input id="RRNO"/></td>
+    <td class="tg-c3ow"><p id="RRNO_val"/></td></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">CDNO</td>
+    <td class="tg-c3ow"><input id="CDNO"/></td>
+    <td class="tg-c3ow"><p id="CDNO_val"/></td></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">accno</td>
+    <td class="tg-c3ow"><input id="accno"/></td>
+    <td class="tg-c3ow"><p id="accno_val"/></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">bil_seq</td>
+    <td class="tg-c3ow"><input id="bil_seq"/></td>
+    <td class="tg-c3ow"><p id="bil_seq_val"/></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">grid_ct</td>
+    <td class="tg-c3ow"><input id="grid_ct"/></td>
+    <td class="tg-c3ow"><p id="grid_ct_val"/></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">stt_dt</td>
+    <td class="tg-c3ow"><input id="stt_dt"/></td>
+    <td class="tg-c3ow"><p id="stt_dt_val"/></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">bil_am</td>
+    <td class="tg-c3ow"><input id="bil_am"/></td>
+    <td class="tg-c3ow"><p id="bil_am_val"/></td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">IDV_BILPLC_SEQ</td>
+    <td class="tg-c3ow"><input id="IDV_BILPLC_SEQ"/></td>
+    <td class="tg-c3ow"><p id="IDV_BILPLC_SEQ_val"/></td>
+  </tr>
+</table>
+<button id="myButton" class="myButton">송신</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){  
+    var url=encodeURI("http://localhost:8080/test/card/paycheck");
+    var params={ 'RRNO':$("#RRNO").val(), 'CDNO':$("#CDNO").val(), 'accno':$("#accno").val(),
+     'bil_seq' : $("#bil_seq").val(), 'grid_ct' : $("#grid_ct").val(), 'stt_dt_val' : $("#stt_dt").val(),
+     'bil_am' : $("#bil_am").val(), 'IDV_BILPLC_SEQ' : $("#IDV_BILPLC_SEQ").val(),}
+
+  
+    $.ajax({      
+        type:'GET',
+        url:url,
+        data : params,
+        contentType:'application/json; charset=utf-8',
+        dataType: 'json',
+        success:function(response){
+            console.log(response);
+            $("#RRNO_val").html(response.dataBody.databody.RRNO);
+            $("#CDNO_val").html(response.dataBody.databody.CDNO);
+            $("#accno_val").html(response.dataBody.databody.accno);
+            $("#bil_seq_val").html(response.dataBody.databody.bil_seq);
+            $("#grid_ct_val").html(response.dataBody.databody.grid_ct);
+            $("#stt_dt_val").html(response.dataBody.databody.stt_dt);
+            $("#bil_am_val").html(response.dataBody.databody.bil_am);
+            $("#IDV_BILPLC_SEQ_val").html(response.dataBody.databody.IDV_BILPLC_SEQ);
+        },    
+        error:function(e){  
+            alert(e.responseText);  
+        }  
+    });
+});  
+</script>
+
+<style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;border-color:#aaa;}
+    .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-top-width:1px;border-bottom-width:1px;border-color:#aaa;color:#333;background-color:#fff;}
+    .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-top-width:1px;border-bottom-width:1px;border-color:#aaa;color:#fff;background-color:#f38630;}
+    .tg .tg-0lax{text-align:left;vertical-align:top}
+</style>
+<style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;border-color:#aaa;}
+    .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#aaa;color:#333;background-color:#fff;}
+    .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#aaa;color:#fff;background-color:#f38630;}
+    .tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}
+    .myButton {
+        background-color:#44c767;
+        -moz-border-radius:27px;
+        -webkit-border-radius:27px;
+        border-radius:27px;
+        border:1px solid #18ab29;
+        display:inline-block;
+        cursor:pointer;
+        color:#ffffff;
+        font-family:Arial;
+        font-size:17px;
+        padding:16px 31px;
+        text-decoration:none;
+        text-shadow:10px 1px 30px #2f6627;
+    }
+    .myButton:hover {
+        background-color:#5cbf2a;
+    }
+    .myButton:active {
+        position:relative;
+        top:1px;
+    }
+</style>

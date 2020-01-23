@@ -1,0 +1,133 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[맴버스 머니조회 page]</h2>
+<style type="text/css">
+  .tg  {border-collapse:collapse;border-spacing:0;}
+  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg .tg-baqh{text-align:center;vertical-align:top}
+  .tg .tg-xozw{font-weight:bold;text-align:center;vertical-align:top}
+  .tg .tg-6opk{font-weight:bold;background-color:#00d2cb;text-align:center;vertical-align:top}
+  .tg .tg-fvov{background-color:#34cdf9;text-align:center;vertical-align:top}
+</style>
+  <table class="tg" style="undefined;table-layout: fixed; width: 816px">
+  <colgroup>
+  <col style="width: 125px">
+  <col style="width: 271px">
+  </colgroup>
+    <tr>
+      <th class="tg-xozw">변수명/메뉴명</th>
+      <th class="tg-6opk">Input Params</th>
+    </tr>
+    <tr>
+      <td class="tg-fvov">고객_식별_구분_코드</td>
+      <td class="tg-baqh"><input id="CST_DRM_DV_C"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">고객_식별_구분_값</td>
+      <td class="tg-baqh"><input id="CST_DRM_DV_V"/></td>
+    </tr>
+  </table>
+<div id="div_res">
+
+</div>
+<button id="myButton" class="myButton">송신</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){  
+    var url=encodeURI("http://localhost:8080/test-module/life/contract");
+    var params={
+        CST_DRM_DV_C:$("#CST_DRM_DV_C").val(),
+        CST_DRM_DV_V:$("#CST_DRM_DV_V").val()
+		}
+    $.ajax({      
+        type:'POST',
+        url:url,
+        data : JSON.stringify(params),
+        contentType:'application/json; charset=UTF-8',
+        dataType: 'json',
+        success:function(response){
+          if (response != undefined) {
+            if (response.dataHeader != undefined) {
+              if (response.dataHeader.GW_RSLT_CD != '1200') {
+                alert (response.dataHeader.GW_RSLT_MSG);
+              }
+            } else {
+              alert("("+response.status + ")" + response.error);
+            }
+          }
+<!--            reponse.prototype.tostring = function responseToString() {-->
+<!--              const resultString = this.dataBody.results.ciVl + this.dataBody.results.loanNo + this.dataBody.results.bondClosCd;-->
+<!--              return resultString;-->
+<!--            }-->
+<!--            const resultString = response.dataBody.results.toString();-->
+<!--            console.log(resultString);-->
+
+if (response.dataBody.TOT_CNT != undefined) {
+  if (response.dataBody.TOT_CNT.length > 0) {
+  var html = '<table class="tg" style="undefined; width: 100%">';
+  html +='<tr>';
+      html +=' <th class="tg-xozw">고객_식별_구분_코드</th>';
+      html +=' <th class="tg-xozw">고객_식별_구분_값</th>';
+      html +=' <th class="tg-xozw">고객_성명</th>';
+      html +=' <th class="tg-xozw">고객_상태_코드</th>';
+      html +=' <th class="tg-xozw">고객_등급_코드</th>';
+      html +=' <th class="tg-xozw">가용_머니</th>';
+      html +=' <th class="tg-xozw">가용_예정_머니</th>';
+      html +=' <th class="tg-xozw">익월_소멸_예정_머니</th>';
+      html +=' <th class="tg-xozw">전월적립머니</th>';
+      html +=' <th class="tg-xozw">전월사용머니</th>';
+      html +=' <th class="tg-xozw">당월적립머니</th>';
+      html +=' <th class="tg-xozw">당월사용머니</th>';
+      html +=' <th class="tg-xozw">현금화가능머니</th>';
+     html += '<tr>';
+
+      html +=' <td>'+response.dataBody.CST_DRM_DV_C+'</td>';
+      html +=' <td>'+response.dataBody.CST_DRM_DV_V+'</td>';
+      html +=' <td>'+response.dataBody.CST_NM+'</td>';
+      html +=' <td>'+response.dataBody.CST_SC+'</td>';
+      html +=' <td>'+response.dataBody.CST_G_C+'</td>';
+      html +=' <td>'+response.dataBody.AVL_COIN+'</td>';
+      html +=' <td>'+response.dataBody.AVL_PLAN_COIN+'</td>';
+      html +=' <td>'+response.dataBody.NTXM_EXCT_PLAN_COIN+'</td>';
+      html +=' <td>'+response.dataBody.BFM_RV_COIN+'</td>';
+      html +=' <td>'+response.dataBody.BFM_USE_COIN+'</td>';
+      html +=' <td>'+response.dataBody.THM_RV_COIN+'</td>';
+      html +=' <td>'+response.dataBody.THM_USE_COIN+'</td>';
+      html +=' <td>'+response.dataBody.AVL_COIN+'</td>';
+     html += '<tr>'
+
+    $("#div_res").html(html);
+  }
+}
+/*
+            var list = response.dataBody.results;
+
+            $("#resultArea").html(response.dataBody.results.ciVl
+            + "\n"
+            + response.dataBody.results.loanNo
+            + "\n"
+            + response.dataBody.results.pgNcs
+            + "\n"
+            + response.dataBody.results.pgNo
+            + "\n"
+            + response.dataBody.results.bondClosCd);
+            */
+        },    
+        error:function(e){  
+            alert(e.responseText);  
+        }  
+    });  
+      
+});  
+</script>

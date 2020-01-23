@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title> ti test2 </title>
+<form name="frmLogin" id="frmLogin" method="post" action="http://10.167.36.224:90/#/" encType="UTF-8">
+    아이디 &nbsp; : <input type="text" name="param1"><br>
+    비밀번호:  <input type="text" name="param2"><br><br>
+    <input type="submit" value="로그인">
+</form>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script type="text/javascript">
+    $(function(){
+        alert("hana ti");
+        var frmLogin = document.frmLogin;
+        var user_id = frmLogin.param1.value;
+        var user_pw = frmLogin.param2.value;
+        frmLogin.submit();
+    })
+</script>

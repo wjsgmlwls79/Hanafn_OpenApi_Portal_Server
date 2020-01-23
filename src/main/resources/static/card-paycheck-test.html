@@ -1,0 +1,91 @@
+<!-- #######  HanaTI Open API 테스트 페이지 #########-->
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head><title>하나금융 OPEN API 테스트 페이지</title></head>
+<h1 style="color: #5e9ca0;"><span style="color: #5e9ca0;">Hana OpenAPI </span><span style="color: #5e9ca0;">API 테스트 페이지</span></h1>
+<h2 style="color: #2e6c80;">사용하는 방법:</h2>
+<p>1. 해당 테이블 안에 파라미터를 입력한다.</p>
+<p>2.&nbsp;<strong>송신</strong>&nbsp;버튼을 클릭하여 결과를 확인 한다.</p>
+<p>&nbsp;</p>
+<h2 style="color: #2e6c80;">[카드 이용내역목록 page]</h2>
+<style type="text/css">
+  .tg  {border-collapse:collapse;border-spacing:0;}
+  .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}
+  .tg .tg-baqh{text-align:center;vertical-align:top}
+  .tg .tg-xozw{font-weight:bold;text-align:center;vertical-align:top}
+  .tg .tg-6opk{font-weight:bold;background-color:#00d2cb;text-align:center;vertical-align:top}
+  .tg .tg-fvov{background-color:#34cdf9;text-align:center;vertical-align:top}
+</style>
+  <table class="tg" style="undefined;table-layout: fixed; width: 816px">
+  <colgroup>
+  <col style="width: 125px">
+  <col style="width: 271px">
+  <col style="width: 420px">
+  </colgroup>
+    <tr>
+      <th class="tg-xozw">변수명/메뉴명</th>
+      <th class="tg-6opk">Input Params</th>
+      <th class="tg-6opk">Response</th>
+    </tr>
+    <tr>
+      <td class="tg-fvov">고객CI값</td>
+      <td class="tg-baqh"><input id="ciVl"/></td>
+      <td class="tg-baqh" rowspan="5"><p id="resultArea"></p></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">채권번호</td>
+      <td class="tg-baqh"><input id="loanNo"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">대상구분</td>
+      <td class="tg-baqh"><input id="bondClosCd"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">페이지번호</td>
+      <td class="tg-baqh"><input id="pgNo"/></td>
+    </tr>
+    <tr>
+      <td class="tg-fvov">페이지당 글수</td>
+      <td class="tg-baqh"><input id="pgNcs"/></td>
+    </tr>
+  </table>
+<button id="myButton" class="myButton">송신</button>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+$('#myButton').click(function(){  
+    var url=encodeURI("http://localhost:8080/test-module/card/paycheck-test");
+    var params={
+        C_CI:"qpFAJYFJJLJYnxE+LgdBN915SvOvC4M7BICAiETLLVohWMG+ZCx9umu9IYS9OzlmcAZFIHQ1Q1Grk1vQGJs2uQ==",
+		CDNO:" ",
+		CD_CST_DC:"0",
+		INQ_SDT:"20190319",
+		INQ_EDT:"20190616",
+		DE_FDC:"0",
+		DOM_FR_DC:"0",
+		PAGE:"1",
+		SIZE:"10"
+	}
+
+    $.ajax({      
+        type:'GET',
+        url:url,
+        data : params,
+        contentType:'application/json; charset=utf-8',
+        dataType: 'json',
+        success: function(response){
+            $("#resultArea").html(JSON.parse(JSON.stringify(response.dataBody)));
+        },    
+        error:function(e){  
+            alert(e.responseText);  
+        },
+        complete: function(response){
+            $("#resultArea").html(JSON.parse(JSON.stringify(response.dataBody)));
+        }
+    });  
+      
+});  
+</script>

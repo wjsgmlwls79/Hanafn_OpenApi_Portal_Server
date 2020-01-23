@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.StatsRepository">
+
+	<select id="dashBoardCount" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT (SELECT COUNT(*) FROM PORTAL_API_INFO WHERE API_STAT_CD = 'OK' AND HFN_CD = #{hfnCd} ) AS API_USE_CNT
+		, (SELECT COUNT(*) FROM PORTAL_API_INFO WHERE API_STAT_CD = 'CLOSE' AND HFN_CD = #{hfnCd} ) AS API_CLOSE_CNT
+	    , (SELECT COUNT(DISTINCT USER_KEY)
+		FROM PORTAL_USEORG_INFO
+		WHERE USEORG_STAT_CD = 'OK'
+			AND(
+			(HBN_USE_YN = 'Y' AND (#{hfnCd} = '01'))
+			OR (HNW_USE_YN = 'Y' AND (#{hfnCd} = '02'))
+			OR (HLF_USE_YN = 'Y' AND (#{hfnCd} = '04'))
+			OR (HCP_USE_YN = 'Y' AND (#{hfnCd} = '05'))
+			OR (HCD_USE_YN = 'Y' AND (#{hfnCd} = '12'))
+			OR (HSV_USE_YN = 'Y' AND (#{hfnCd} = '14'))
+			OR (HMB_USE_YN = 'Y' AND (#{hfnCd} = '99'))
+			)) AS USEORG_OK_CNT
+		,(SELECT COUNT(DISTINCT USER_KEY)
+		  FROM PORTAL_USEORG_INFO
+		  WHERE USEORG_STAT_CD = 'WAIT'
+			AND(
+				  (HBN_USE_YN = 'Y' AND (#{hfnCd} = '01'))
+				  OR (HNW_USE_YN = 'Y' AND (#{hfnCd} = '02'))
+				  OR (HLF_USE_YN = 'Y' AND (#{hfnCd} = '04'))
+				  OR (HCP_USE_YN = 'Y' AND (#{hfnCd} = '05'))
+				  OR (HCD_USE_YN = 'Y' AND (#{hfnCd} = '12'))
+				  OR (HSV_USE_YN = 'Y' AND (#{hfnCd} = '14'))
+				  OR (HMB_USE_YN = 'Y' AND (#{hfnCd} = '99'))
+			  )) AS USEORG_CLOSE_CNT
+		, (SELECT COUNT(DISTINCT T1.APP_KEY)
+		FROM
+		((SELECT APP_KEY, HFN_CD FROM PORTAL_APP_API_INFO) T1
+		INNER JOIN
+		(SELECT APP_KEY, APP_STAT_CD FROM PORTAL_APP_INFO) T2
+		ON T1.APP_KEY = T2.APP_KEY)
+		WHERE T2.APP_STAT_CD = 'OK' AND T1.HFN_CD = #{hfnCd} ) AS APP_OK_CNT
+		, (SELECT COUNT(DISTINCT T1.APP_KEY)
+		FROM
+		((SELECT APP_KEY, HFN_CD FROM PORTAL_APP_API_INFO) T1
+		INNER JOIN
+		(SELECT APP_KEY, APP_STAT_CD FROM PORTAL_APP_INFO) T2
+		ON T1.APP_KEY = T2.APP_KEY)
+		WHERE T2.APP_STAT_CD = 'CLOSE' AND T1.HFN_CD = #{hfnCd} ) AS APP_CLOSE_CNT
+		, (SELECT COUNT(DISTINCT T1.APP_KEY)
+		FROM
+		((SELECT APP_KEY, HFN_CD FROM PORTAL_APP_API_INFO) T1
+		INNER JOIN
+		(SELECT APP_KEY, APP_STAT_CD FROM PORTAL_APP_INFO) T2
+		ON T1.APP_KEY = T2.APP_KEY)
+		WHERE T2.APP_STAT_CD = 'EXPIRE' AND T1.HFN_CD = #{hfnCd} ) AS APP_EXPIRE_CNT
+		, (SELECT COUNT(*)
+		FROM PORTAL_APLV_HIS
+		WHERE HFN_CD = #{hfnCd}
+		AND APLV_STAT_CD = 'WAIT'
+		AND PROC_USER = #{userKey}) AS APLV_WAIT_CNT
+	</select>
+
+	<select id="dashBoardThreeDayTotal" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT COUNT(API_ID) AS API_TRX_CNT     -- API건수
+			 , IFNULL(ROUND(SUM(PROC_TERM) / COUNT(API_ID), 2), 0) AS AVG_PROC_TERM    -- 응답시간
+			 , IFNULL(MAX(PROC_TERM), 0) AS MAX_PROC_TERM
+			 , IFNULL(ROUND((SUM(IF(API_PROC_STAT_CD!='OK',1,0)) / COUNT(API_ID))*100, 2), 0) AS API_ERROR  -- API에러율
+			 , IFNULL(ROUND((SUM(IF(GW_PROC_STAT_CD!='OK',1,0)) / COUNT(API_ID))*100, 2), 0) AS GW_ERROR  -- GW에러율
+		FROM PORTAL_API_LOG_HIS
+		WHERE REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND HFN_CD = #{hfnCd}
+	</select>
+
+	<select id="dashBoardThreeDayTopApiUse" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT  T1.API_ID       -- API_ID
+			   ,T2.API_NM       -- API명
+			   ,COUNT(T1.API_ID) AS API_TRX_CNT     -- API건수
+			   ,T1.API_URI AS API_URL      -- API주소
+		FROM PORTAL_API_LOG_HIS T1
+		INNER JOIN PORTAL_API_INFO T2 ON T1.API_ID = T2.API_ID
+		WHERE T1.REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND T1.HFN_CD = #{hfnCd}
+		GROUP BY T1.API_ID
+		ORDER BY API_TRX_CNT DESC
+		LIMIT 0,3
+	</select>
+
+	<select id="dashBoardThreeDayTopProcTerm" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT  T1.API_ID       -- API_ID
+			   ,T2.API_NM       -- API명
+			   ,ROUND(SUM(T1.PROC_TERM) / COUNT(T1.API_ID), 2) AS PROC_TERM
+		FROM PORTAL_API_LOG_HIS T1
+		INNER JOIN PORTAL_API_INFO T2 ON T1.API_ID = T2.API_ID
+		WHERE T1.REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND T1.HFN_CD = #{hfnCd}
+		GROUP BY T1.API_ID
+		ORDER BY PROC_TERM DESC
+		LIMIT 0,3
+	</select>
+
+	<select id="dashBoardThreeDayTopApiError" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT  T1.API_ID       -- API_ID
+			   ,T2.API_NM       -- API명
+			   ,ROUND((SUM(IF(T1.GW_PROC_STAT_CD != 'OK',1,0)) / COUNT(T1.API_ID)) * 100, 2) AS API_ERROR
+		FROM PORTAL_API_LOG_HIS T1
+		INNER JOIN PORTAL_API_INFO T2 ON T1.API_ID = T2.API_ID
+		WHERE T1.REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND T1.HFN_CD = #{hfnCd}
+		GROUP BY T1.API_ID
+		ORDER BY API_ERROR DESC
+		LIMIT 0,3
+	</select>
+
+	<select id="dashBoardThreeDayList" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest" resultType="dashBoard">
+		SELECT HOUR(REG_DTTM) AS REG_HOUR   -- 시간
+			 , COUNT(API_ID) AS REG_CNT     -- API건수
+			 , ROUND(SUM(PROC_TERM) / COUNT(API_ID), 2) AS PROC_TERM    -- 응답시간
+			 , ROUND((SUM(IF(API_PROC_STAT_CD!='OK',1,0)) / COUNT(API_ID))*100, 2) AS API_ERROR  -- 에러율
+		FROM PORTAL_API_LOG_HIS
+		WHERE REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND HFN_CD = #{hfnCd}
+		GROUP BY HOUR(REG_DTTM)
+	</select>
+
+
+	<!--
+	************************이용기관 대시보드************************
+	-->
+
+	<select id="useorgDashBoardCount" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT (SELECT USEORG_NM FROM PORTAL_USEORG_INFO
+		WHERE USER_KEY = #{userKey}) AS USEORG_NM
+		, (SELECT COUNT(*) FROM PORTAL_APP_INFO
+		WHERE USER_KEY = #{userKey}) AS APP_TOTAL_CNT
+		, (SELECT COUNT(USER_KEY)
+		   FROM PORTAL_APP_INFO_MOD
+		   WHERE APP_STAT_CD = 'WAIT'
+			 AND APP_APLV_STAT_CD = 'REQ'
+		AND USER_KEY = #{userKey} ) AS APP_WAIT_CNT
+		, (SELECT COUNT(*) FROM PORTAL_APP_INFO
+		WHERE APP_STAT_CD = 'OK'
+		AND USER_KEY = #{userKey} ) AS  APP_OK_CNT
+		, (SELECT COUNT(*) FROM PORTAL_APP_INFO
+		WHERE APP_STAT_CD = 'CLOSE'
+		AND USER_KEY = #{userKey} ) AS APP_CLOSE_CNT
+		, (SELECT COUNT(*) FROM PORTAL_APP_INFO
+		WHERE APP_STAT_CD = 'EXPIRE'
+		AND USER_KEY = #{userKey}) AS APP_EXPIRE_CNT
+		, (SELECT COUNT(*)
+		FROM PORTAL_APP_INFO T1, PORTAL_APLV_INFO T2
+		WHERE T1.USER_KEY = #{userKey}
+		AND T2.APLV_DIV_CD = 'APPEXP'
+		AND T2.APLV_STAT_CD = 'WAIT'
+		AND T1.APP_KEY = T2.APLV_REQ_CD  ) AS APP_EXPIRE_APLV_WAIT_CNT
+		, (SELECT COUNT(*) FROM PORTAL_APP_INFO
+		WHERE USER_KEY = #{userKey}
+		AND APP_STAT_CD IN ('OK', 'CLOSE')
+		AND APP_SVC_EN_DT <![CDATA[ <= ]]> DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 1 MONTH) , '%Y%m%d')
+		AND APP_SVC_EN_DT <![CDATA[ >= ]]> DATE_FORMAT(NOW(), '%Y%m%d')) AS APP_EXPIRE_EXPECT_CNT
+	</select>
+
+	<select id="useorgApiTrxMonthInfo" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT @ROWNUM := @ROWNUM + 1 AS RNUM
+			 ,APP_NM
+			 ,HFN_NM
+			 ,APP_KEY
+		FROM (
+				 SELECT T1.APP_NM
+					  , T3.HFN_NM
+				 	  , T1.APP_KEY
+				 FROM PORTAL_APP_INFO T1
+				  INNER JOIN PORTAL_APP_API_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+				  INNER JOIN PORTAL_HFN_INFO T3 ON T2.HFN_CD = T3.HFN_CD
+				 WHERE T1.USER_KEY = #{userKey}
+				   AND T1.APP_STAT_CD != 'DEL'
+				 GROUP BY T1.APP_NM
+			 ) A,
+			 (SELECT @ROWNUM := 0) RNUMTMP
+		ORDER BY RNUM DESC
+	</select>
+
+	<select id="useorgApiTrxMonthMod" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT @ROWNUM := @ROWNUM + 1 AS RNUM
+			 ,APP_NM
+			 ,HFN_NM
+			 ,APP_KEY
+		FROM (
+				 SELECT T1.APP_NM
+					  , T3.HFN_NM
+				 	  , T1.APP_KEY
+				 FROM PORTAL_APP_INFO_MOD T1
+				  INNER JOIN PORTAL_APP_API_INFO T2 ON T1.APP_KEY = T2.APP_KEY
+				  INNER JOIN PORTAL_HFN_INFO T3 ON T2.HFN_CD = T3.HFN_CD
+				 WHERE T1.USER_KEY = #{userKey}
+				   AND T1.APP_STAT_CD != 'DEL'
+				 GROUP BY T1.APP_NM
+			 ) A,
+			 (SELECT @ROWNUM := 0) RNUMTMP
+		ORDER BY RNUM DESC
+	</select>
+
+	<select id="useorgDashBoardAppApiTrxList" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT T1.APP_KEY
+		, T2.APP_NM
+		, SUM(T1.API_TRX_CNT) AS API_TRX_CNT
+		FROM (
+		SELECT APP_KEY
+		, API_TRX_CNT
+		FROM PORTAL_STATS_MONTH_INFO
+		WHERE CONCAT(YEAR ,MONTH) = DATE_FORMAT(NOW(), '%Y%m')
+		AND USER_KEY = #{userKey}
+
+		UNION ALL
+
+		SELECT APP_KEY
+		, API_TRX_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO
+		WHERE USER_KEY = #{userKey}
+		) AS T1, PORTAL_APP_INFO T2
+		WHERE T1.APP_KEY = T2.APP_KEY
+		GROUP BY T1.APP_KEY, T2.APP_NM
+	</select>
+
+	<select id="useorgDashBoardApiTrxList" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT T1.API_ID
+		, T2.API_NM
+		, SUM(T1.API_TRX_CNT) AS API_TRX_CNT
+		FROM (
+		SELECT API_ID
+		, API_TRX_CNT
+		FROM PORTAL_STATS_MONTH_INFO
+		WHERE CONCAT(YEAR ,MONTH) = DATE_FORMAT(NOW(), '%Y%m')
+		AND USER_KEY = #{userKey}
+
+		UNION ALL
+
+		SELECT	API_ID
+		, API_TRX_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO
+		WHERE USER_KEY = #{userKey}
+		) AS T1, PORTAL_API_INFO T2
+		WHERE T1.API_ID = T2.API_ID
+		GROUP BY T1.API_ID, T2.API_NM
+	</select>
+
+	<select id="useorgDashBoardThreeDayList" parameterType="com.hanafn.openapi.portal.views.dto.DashBoardRequest$UseorgDashBoardRequest" resultType="useorgDashBoard">
+		SELECT HOUR(REG_DTTM) AS REG_HOUR   -- 시간
+			 , COUNT(API_ID) AS REG_CNT     -- API건수
+			 , ROUND(SUM(PROC_TERM) / COUNT(API_ID), 2) AS PROC_TERM    -- 응답시간
+			 , ROUND((SUM(IF(API_PROC_STAT_CD!='OK',1,0)) / COUNT(API_ID))*100, 2) AS API_ERROR  -- 에러율
+		FROM PORTAL_API_LOG_HIS
+		WHERE REG_DTTM between CONCAT(CURRENT_DATE(), ' ', '00:00:00') and CONCAT(CURRENT_DATE(), ' ', '23:59:59')
+		  AND ENTR_CD = #{entrCd}
+		GROUP BY HOUR(REG_DTTM)
+	</select>
+
+
+	<!--
+	************************API 통계************************
+	-->
+
+	<sql id="whereStats">
+		<where>
+			AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+			AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+		</where>
+	</sql>
+
+	<sql id="whereApiStats">
+		<where>
+			<if test='searchApiId != null and searchApiId != ""'>
+				AND T1.API_ID = #{searchApiId}
+			</if>
+			<if test='searchAppKey != null and searchAppKey != ""'>
+				AND T1.APP_KEY = #{searchAppKey}
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND T1.USER_KEY = #{searchUserKey}
+			</if>
+			<if test='searchCtgrCd != null and searchCtgrCd != ""'>
+				AND T2.CTGR_CD = #{searchCtgrCd}
+			</if>
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T1.HFN_CD = #{searchHfnCd}
+			</if>
+			AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+			AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+			AND T1.API_ID = T2.API_ID
+		</where>
+	</sql>
+	<sql id="whereApiStatsToDay">
+		<where>
+			<if test='searchApiId != null and searchApiId != ""'>
+				AND T1.API_ID = #{searchApiId}
+			</if>
+			<if test='searchAppKey != null and searchAppKey != ""'>
+				AND T1.APP_KEY = #{searchAppKey}
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND T1.USER_KEY = #{searchUserKey}
+			</if>
+			<if test='searchCtgrCd != null and searchCtgrCd != ""'>
+				AND T2.CTGR_CD = #{searchCtgrCd}
+			</if>
+			<if test='searchHfnCd != null and searchHfnCd != ""'>
+				AND T1.HFN_CD = #{searchHfnCd}
+			</if>
+			AND T1.API_ID = T2.API_ID
+		</where>
+	</sql>
+
+	<select id="apiDayTotal" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT T2.API_TRX_CNT
+		, ROUND((T2.PROC_TERM/T2.API_TRX_CNT), 2) AS AVG_PROC_TERM
+		, ROUND(((T2.GW_ERROR_CNT/T2.API_TRX_CNT)*100), 2) AS GW_ERROR
+		, ROUND(((T2.API_ERROR_CNT/T2.API_TRX_CNT)*100), 2) AS API_ERROR
+		, T2.MAX_PROC_TERM
+		FROM (
+		SELECT IFNULL(SUM(API_TRX_CNT), 0) AS API_TRX_CNT
+		, IFNULL(SUM(PROC_TERM), 0) AS PROC_TERM
+		, IFNULL(SUM(GW_ERROR_CNT), 0) AS GW_ERROR_CNT
+		, IFNULL(SUM(API_ERROR_CNT), 0) AS API_ERROR_CNT
+		, IFNULL(MAX(PROC_TERM), 0) AS MAX_PROC_TERM
+		FROM ((
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		, T1.GW_ERROR_CNT
+		, T1.API_ERROR_CNT
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+		)
+		UNION ALL
+		(
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		, T1.GW_ERROR_CNT
+		, T1.API_ERROR_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		)) AS T1
+		<include refid="whereStats"/>
+		) T2
+	</select>
+
+	<select id="apiTrxDayList" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT CONCAT( YEAR ,MONTH ,DAY ) AS DAY
+		, T2.API_TRX_CNT
+		, ROUND((T2.PROC_TERM/T2.API_TRX_CNT), 2) AS PROC_TERM
+		, ROUND(((T2.GW_ERROR_CNT/T2.API_TRX_CNT)*100), 2) AS API_ERROR
+		FROM (
+		SELECT YEAR
+		, MONTH
+		, DAY
+		, SUM(API_TRX_CNT) AS API_TRX_CNT
+		, SUM(PROC_TERM) AS PROC_TERM
+		, SUM(GW_ERROR_CNT) AS GW_ERROR_CNT
+		, SUM(API_ERROR_CNT) AS API_ERROR_CNT
+		FROM ((
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		, T1.GW_ERROR_CNT
+		, T1.API_ERROR_CNT
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+		)
+		UNION ALL
+		(
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		, T1.GW_ERROR_CNT
+		, T1.API_ERROR_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		)) AS T1
+		<include refid="whereStats"/>
+		GROUP BY YEAR, MONTH, DAY
+		) T2
+	</select>
+
+	<select id="apiStatsTopApiUse" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT T1.API_ID
+		, T2.API_NM
+		, SUM(API_TRX_CNT) AS API_TRX_CNT
+		FROM (
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+
+		UNION ALL
+
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		) AS T1, PORTAL_API_INFO T2
+		WHERE CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+		AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+		AND T1.API_ID = T2.API_ID
+		GROUP BY T1.API_ID, T2.API_NM
+		ORDER BY API_TRX_CNT DESC
+		LIMIT 0, 10
+	</select>
+
+	<select id="apiStatsTopProcTerm" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT T1.API_ID
+		, T2.API_NM
+		, ROUND(((SUM(T1.PROC_TERM)/SUM(T1.API_TRX_CNT))), 2) AS PROC_TERM
+		FROM (
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+
+		UNION ALL
+
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		) AS T1, PORTAL_API_INFO T2
+		WHERE CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+		AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+		AND T1.API_ID = T2.API_ID
+		GROUP BY T1.API_ID, T2.API_NM
+		ORDER BY PROC_TERM DESC
+		LIMIT 0, 10
+	</select>
+
+	<select id="apiStatsTopApiError" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT T1.API_ID
+		, T2.API_NM
+		, ROUND(((SUM(T1.GW_ERROR_CNT)/SUM(T1.API_TRX_CNT))*100), 2) AS API_ERROR
+		FROM (
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		, T1.GW_ERROR_CNT
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+
+		UNION ALL
+
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.API_ID
+		, T1.API_TRX_CNT
+		, T1.GW_ERROR_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		) AS T1, PORTAL_API_INFO T2
+		WHERE CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+		AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+		AND T1.API_ID = T2.API_ID
+		GROUP BY T1.API_ID, T2.API_NM
+		ORDER BY API_ERROR DESC
+		LIMIT 0, 10
+	</select>
+
+
+	<!--
+	************************이용관리 통계************************
+	-->
+
+	<select id="appTrxList" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest" resultType="stats">
+		SELECT T3.APP_KEY
+		, T3.APP_NM
+		, T3.API_TRX_CNT
+		, ROUND((T3.PROC_TERM/T3.API_TRX_CNT), 2) AS PROC_TERM
+		, ROUND(((T3.API_ERROR_CNT/T3.API_TRX_CNT)*100), 2) AS API_ERROR
+		FROM (
+		SELECT T1.APP_KEY
+		, T2.APP_NM
+		, SUM(T1.API_TRX_CNT) AS API_TRX_CNT
+		, SUM(T1.PROC_TERM) AS PROC_TERM
+		, SUM(T1.API_ERROR_CNT) AS API_ERROR_CNT
+		FROM (
+		SELECT T1.YEAR
+		, T1.MONTH
+		, T1.DAY
+		, T1.APP_KEY
+		, T1.USER_KEY
+		, T1.API_TRX_CNT
+		, T1.PROC_TERM
+		, T1.API_ERROR_CNT
+		FROM PORTAL_STATS_DAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStats"/>
+
+		UNION ALL
+
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, T1.APP_KEY
+		, T1.USER_KEY
+		, SUM(T1.API_TRX_CNT) AS API_TRX_CNT
+		, SUM(T1.PROC_TERM) AS PROC_TERM
+		, SUM(T1.API_ERROR_CNT) AS API_ERROR_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO T1, PORTAL_API_INFO T2
+		<include refid="whereApiStatsToDay"/>
+		GROUP BY YEAR, MONTH ,DAY ,APP_KEY ,USER_KEY
+		) T1, PORTAL_APP_INFO T2
+		WHERE CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+		AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+		AND T1.APP_KEY = T2.APP_KEY
+		GROUP BY T1.APP_KEY, T2.APP_NM
+		ORDER BY API_TRX_CNT DESC
+		) T3
+	</select>
+
+	<sql id="whereAppApiStats">
+		<where>
+			<if test='appKey != null and appKey != ""'>
+				AND T1.APP_KEY = #{appKey}
+			</if>
+			<if test='searchUserKey != null and searchUserKey != ""'>
+				AND T1.USER_KEY = #{searchUserKey}
+			</if>
+			<if test='searchStDt != null and searchStDt != ""'>
+				AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ >= ]]> #{searchStDt}
+			</if>
+			<if test='searchEnDt != null and searchEnDt != ""'>
+				AND CONCAT( T1.YEAR ,T1.MONTH ,T1.DAY ) <![CDATA[ <= ]]> #{searchEnDt}
+			</if>
+			AND T1.APP_KEY = T2.APP_KEY
+			AND T1.API_ID = T3.API_ID
+			AND T3.CTGR_CD = T4.CTGR_CD
+		</where>
+	</sql>
+
+	<select id="useorgAppApiDetailStatsList" parameterType="com.hanafn.openapi.portal.views.dto.StatsRequest$AppDetailStatsRequest" resultType="stats">
+		SELECT T3.API_ID
+		, T3.API_NM
+		, T4.CTGR_NM
+		, SUM(API_TRX_CNT) AS API_TRX_CNT
+		FROM (
+		SELECT YEAR
+		, MONTH
+		, DAY
+		, API_ID
+		, APP_KEY
+		, USER_KEY
+		, API_TRX_CNT
+		FROM PORTAL_STATS_DAY_INFO
+		WHERE APP_KEY = #{appKey}
+		AND CONCAT( YEAR ,MONTH ,DAY ) <![CDATA[ >= ]]> #{searchStDt}
+		AND CONCAT( YEAR ,MONTH ,DAY ) <![CDATA[ <= ]]> #{searchEnDt}
+
+		UNION ALL
+
+		SELECT DATE_FORMAT(NOW(), '%Y') AS YEAR
+		, DATE_FORMAT(NOW(), '%m') AS MONTH
+		, DATE_FORMAT(NOW(), '%d') AS DAY
+		, API_ID
+		, APP_KEY
+		, USER_KEY
+		, SUM(API_TRX_CNT) AS API_TRX_CNT
+		FROM PORTAL_STATS_TODAY_TM_INFO
+		WHERE APP_KEY = #{appKey}
+		GROUP BY YEAR, MONTH ,DAY ,API_ID ,APP_KEY ,USER_KEY
+		) T1, PORTAL_APP_INFO T2, PORTAL_API_INFO T3, PORTAL_API_CTGR_INFO T4
+		<include refid="whereAppApiStats"/>
+		GROUP BY T3.API_ID, T3.API_NM, T4.CTGR_NM
+		ORDER BY API_TRX_CNT DESC
+	</select>
+
+	<select id="getLastUpdateDate" resultType="String">
+		SELECT IFNULL(MAX(REG_DTTM), '')
+		FROM PORTAL_BATCH_HISTORY
+		WHERE BATCH_ID IN ('로그 통계 금일 집계', '로그 통계 일 집계')
+	</select>
+</mapper>

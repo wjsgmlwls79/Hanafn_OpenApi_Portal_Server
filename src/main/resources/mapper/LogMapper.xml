@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanafn.openapi.portal.views.repository.LogRepository">
+	<insert id="insertPortalLog" parameterType="com.hanafn.openapi.portal.views.dto.LogRequest">
+        INSERT INTO PORTAL_LOG_HIS	(
+        								TRX_ID
+										,REG_DTTM
+										,TRX_CD
+										,REG_USER
+										,ROLE_CD
+										,PROC_STAT_CD
+										,INPUT_CTNT
+										,OUTPUT_CTNT
+                                    )
+                            VALUES	(
+                            			#{trxId}
+                                        ,NOW()
+                                        ,#{trxCd}
+                                        ,#{userId}
+                                        ,#{roleCd}
+                                        ,#{procStatCd}
+                                        ,#{inputCtnt}
+                                        ,#{outputCtnt}
+                                    )
+    </insert>
+
+
+	<sql id="paging">
+		LIMIT #{pageOffset} , #{pageSize}
+	</sql>
+
+	<!-- 조회 조건 -->
+	<sql id="wherePortalLog">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T2.TRX_NM LIKE CONCAT('%', #{searchNm}, '%')
+						OR T1.REG_USER IN (SELECT USER_KEY FROM PORTAL_HFN_USER_INFO WHERE USER_NM LIKE CONCAT('%', #{searchNm}, '%'))
+					)
+			</if>
+			<if test='searchStDt != null and searchStDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+			</if>
+			<if test='searchEnDt != null and searchEnDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+			</if>
+			<if test='searchProcStatCd != null and searchProcStatCd != ""'>
+				AND T1.PROC_STAT_CD = #{searchProcStatCd}
+			</if>
+			AND T1.TRX_CD = T2.TRX_CD
+		</where>
+	</sql>
+
+	<select id="selectPortalLog" parameterType="com.hanafn.openapi.portal.views.dto.PortalLogRequest$PortalLogDetailRequest" resultType="portalLog">
+        SELECT
+			T1.TRX_ID
+			,T1.REG_DTTM
+            ,T1.TRX_CD
+            ,IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+					  IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+							 (SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+            ,T1.ROLE_CD
+            ,T1.PROC_STAT_CD
+            ,T1.INPUT_CTNT
+            ,T1.OUTPUT_CTNT
+			  , T2.TRX_NM
+          FROM PORTAL_LOG_HIS T1, PORTAL_TRX_INFO T2
+         WHERE T1.TRX_ID = #{trxId}
+           AND T1.TRX_CD = T2.TRX_CD
+         LIMIT 0,1
+    </select>
+
+
+	<select id="countPortalLogList" parameterType="com.hanafn.openapi.portal.views.dto.PortalLogRequest" resultType="Integer">
+		SELECT COUNT(T1.TRX_ID)
+		FROM PORTAL_LOG_HIS T1, PORTAL_TRX_INFO T2
+		<include refid="wherePortalLog"/>
+	</select>
+
+	<select id="selectPortalLogList" parameterType="com.hanafn.openapi.portal.views.dto.PortalLogRequest" resultType="portalLog">
+		SELECT T1.TRX_ID
+			  , T1.REG_DTTM
+			  , T1.TRX_CD
+			  , T1.ROLE_CD
+			  , T1.PROC_STAT_CD
+			  , T2.TRX_NM
+			  , IFNULL((SELECT USER_NM FROM PORTAL_HFN_USER_INFO WHERE USER_KEY = T1.REG_USER),
+				IFNULL((SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USER_KEY = T1.REG_USER),
+				(SELECT USEORG_NM FROM PORTAL_USEORG_INFO WHERE USEORG_ID = T1.REG_USER))) AS REG_USER
+		  FROM PORTAL_LOG_HIS T1, PORTAL_TRX_INFO T2
+		<include refid="wherePortalLog"/>
+		 ORDER BY T1.REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<!--
+		************************API 로그************************
+	-->
+
+	<!-- 조회 조건 -->
+	<sql id="whereApiLog">
+		<where>
+			<if test='searchNm != null and searchNm != ""'>
+				AND (T1.API_ID = #{searchNm}
+					 OR T3.API_NM LIKE CONCAT('%', #{searchNm}, '%')
+					)
+			</if>
+			<if test='searchStDt != null and searchStDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ >= ]]> REPLACE(#{searchStDt}, '-','')
+			</if>
+			<if test='searchEnDt != null and searchEnDt != ""'>
+				AND DATE_FORMAT(T1.REG_DTTM, '%Y%m%d') <![CDATA[ <= ]]> REPLACE(#{searchEnDt}, '-','')
+			</if>
+			<if test='searchGwProcStatCd != null and searchGwProcStatCd != ""'>
+				AND T1.GW_PROC_STAT_CD = #{searchGwProcStatCd}
+			</if>
+			<if test='searchApiProcStatCd != null and searchApiProcStatCd != ""'>
+				AND T1.API_PROC_STAT_CD = #{searchApiProcStatCd}
+			</if>
+			<if test='searchTrxId != null and searchTrxId != ""'>
+				AND T1.TRX_ID = #{searchTrxId}
+			</if>
+			<if test='searchGwType != null and searchGwType != ""'>
+				AND T1.GW_TYPE = #{searchGwType}
+			</if>
+			<if test='hfnCd != null and hfnCd != ""'>
+				AND T1.HFN_CD = #{hfnCd}
+			</if>
+		</where>
+	</sql>
+
+	<select id="selectApiLog" parameterType="com.hanafn.openapi.portal.views.dto.ApiLogRequest$ApiLogDetailRequest" resultType="apiLog">
+        SELECT *
+			  , T2.APP_NM
+			  , T3.API_NM
+			  , T4.USEORG_NM
+          FROM PORTAL_API_LOG_HIS T1
+				LEFT JOIN PORTAL_APP_INFO T2
+				  ON T1.APP_KEY = T2.APP_KEY
+				LEFT JOIN PORTAL_API_INFO T3
+				  ON T1.API_ID = T3.API_ID
+				LEFT JOIN PORTAL_USEORG_INFO T4
+				  ON T2.USER_KEY = T4.USER_KEY
+         WHERE T1.TRX_ID = #{trxId}
+    </select>
+
+
+	<select id="countApiLogList" parameterType="com.hanafn.openapi.portal.views.dto.ApiLogRequest" resultType="Integer">
+		SELECT COUNT(T1.TRX_ID)
+		  FROM PORTAL_API_LOG_HIS T1
+				LEFT JOIN PORTAL_APP_INFO T2
+				  ON T1.APP_KEY = T2.APP_KEY
+				LEFT JOIN PORTAL_API_INFO T3
+				  ON T1.API_ID = T3.API_ID
+		<include refid="whereApiLog"/>
+	</select>
+
+	<select id="selectApiLogList" parameterType="com.hanafn.openapi.portal.views.dto.ApiLogRequest" resultType="apiLog">
+		SELECT T1.TRX_ID
+			  , T1.REG_DTTM
+			  , T1.API_ID
+			  , T1.API_URI
+			  , T1.PROC_TERM
+			  , T1.GW_PROC_STAT_CD
+			  , T1.API_PROC_STAT_CD
+			  , T1.APP_KEY
+			  , T2.APP_NM
+			  , T3.API_NM
+			  , T1.GW_TYPE
+		  FROM PORTAL_API_LOG_HIS T1
+				LEFT JOIN PORTAL_APP_INFO T2
+				  ON T1.APP_KEY = T2.APP_KEY
+				LEFT JOIN PORTAL_API_INFO T3
+				  ON T1.API_ID = T3.API_ID
+		<include refid="whereApiLog"/>
+		 ORDER BY REG_DTTM DESC
+		<include refid="paging"></include>
+	</select>
+
+	<select id="selectTrxInfo" parameterType="com.hanafn.openapi.portal.views.dto.TrxInfoRequest" resultType="trxInfo">
+		SELECT *
+		FROM PORTAL_TRX_INFO
+		WHERE TRX_CD = #{trxCd}
+	</select>
+
+	<select id="selectTrxInfoAll" resultType="trxInfo">
+		SELECT *
+		FROM PORTAL_TRX_INFO
+	</select>
+</mapper>
+
